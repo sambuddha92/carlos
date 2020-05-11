@@ -13,11 +13,11 @@ const User = require('../../models/user.js');
 
 const permissionLevels = ['SUPERUSER', 'ADMIN', 'MODERATOR', 'EDITOR'];
 
-//@route    POST api/user @desc     Create User @access   private
+//@route    POST api/user
+//@desc     Create User
+//@access   private
 
-router.post('/', [
-    upload, isValidUser, isEditorOrAbove
-], async(req, res) => {
+router.post('/', [ upload, isValidUser, isEditorOrAbove ], async(req, res) => {
 
     //Read and update request
     const {firstname, lastname, email, permissionlevel} = req.body;
@@ -45,9 +45,7 @@ router.post('/', [
             }
         }
 
-        return res
-            .status(403)
-            .json(response);
+        return res.status(403).json(response);
     }
 
     let password = generator.generate({length: 6, numbers: true});
@@ -65,9 +63,7 @@ router.post('/', [
                 }
             }
 
-            return res
-                .status(400)
-                .json(response);
+            return res.status(400).json(response);
         }
 
         //Initiate User
@@ -100,9 +96,7 @@ router.post('/', [
             }
         }
 
-        return res
-            .status(200)
-            .json(response);
+        return res.status(200).json(response);
 
     } catch (err) {
         let response = {
@@ -113,14 +107,14 @@ router.post('/', [
             }
         }
 
-        return res
-            .status(500)
-            .json(response);
+        return res.status(500).json(response);
     }
 
 })
 
-//@route    GET api/user @desc     Get Own Profile @access   private
+//@route    GET api/user
+//@desc     Get Own Profile
+//@access   private
 
 router.get('/', (req, res) => {
     if (!req.user) {
@@ -130,25 +124,21 @@ router.get('/', (req, res) => {
                 desc: "User could not be authenticated"
             }
         }
-        return res
-            .status(401)
-            .json(response);
+        return res.status(401).json(response);
     }
 
-    res
-        .status(200)
-        .json(req.user);
+    return res.status(200).json(req.user);
 })
 
-//@route    GET api/user/all @desc     Get All Users @access   private
+//@route    GET api/user/all
+//@desc     Get All Users
+//@access   private
 
 router.get('/all', [isEditorOrAbove], async(req, res) => {
     try {
         let users = await User.find();
         let filteredUsers = users.filter(user => (user.permission.level >= req.user.permission.level))
-        res
-            .status(200)
-            .json(filteredUsers);
+        return res.status(200).json(filteredUsers);
     } catch (err) {
         let response = {
             error: {
@@ -157,13 +147,13 @@ router.get('/all', [isEditorOrAbove], async(req, res) => {
                 msg: err
             }
         }
-        return res
-            .status(500)
-            .json(response);
+        return res.status(500).json(response);
     }
 })
 
-//@route    PUT api/user @desc     Update Own Profile @access   private
+//@route    PUT api/user
+//@desc     Update Own Profile
+//@access   private
 
 router.put('/', async(req, res) => {
     if (!req.user) {
@@ -173,9 +163,7 @@ router.put('/', async(req, res) => {
                 desc: "User could not be authenticated."
             }
         }
-        return res
-            .status(401)
-            .json(response);
+        return res.status(401).json(response);
     }
 
     const updates = req.body;
@@ -187,9 +175,7 @@ router.put('/', async(req, res) => {
                 desc: "User must have a first name."
             }
         }
-        return res
-            .status(400)
-            .json(response);
+        return res.status(400).json(response);
     }
 
     delete updates.password;
@@ -204,9 +190,7 @@ router.put('/', async(req, res) => {
                 desc: "The user has been updated according to the given details."
             }
         }
-        res
-            .status(200)
-            .json(response);
+        return res.status(200).json(response);
     } catch (err) {
         let response = {
             error: {
@@ -216,14 +200,13 @@ router.put('/', async(req, res) => {
             }
         }
 
-        return res
-            .status(500)
-            .json(response);
+        return res.status(500).json(response);
     }
 })
 
-// @route    PUT api/user/password/reset @desc     Reset Password of User @access
-//   private
+//@route    PUT api/user/password/reset
+//@desc     Reset Password of User
+//@access   private
 
 router.put('/password/reset', [isEditorOrAbove], async(req, res) => {
 
@@ -236,9 +219,7 @@ router.put('/password/reset', [isEditorOrAbove], async(req, res) => {
                 desc: "User Id is neessary to delete an user."
             }
         }
-        return res
-            .status(400)
-            .json(response);
+        return res.status(400).json(response);
     }
 
     try {
@@ -252,9 +233,7 @@ router.put('/password/reset', [isEditorOrAbove], async(req, res) => {
                     desc: "User cannot reset password for another user with higher permission level"
                 }
             }
-            return res
-                .status(403)
-                .json(response);
+            return res.status(403).json(response);
         }
 
         let password = generator.generate({length: 6, numbers: true});
@@ -285,9 +264,7 @@ router.put('/password/reset', [isEditorOrAbove], async(req, res) => {
                         "n email with new credentials."
             }
         }
-        res
-            .status(200)
-            .json(response);
+        return res.status(200).json(response);
 
     } catch (err) {
         let response = {
@@ -297,16 +274,16 @@ router.put('/password/reset', [isEditorOrAbove], async(req, res) => {
                 msg: err
             }
         }
-        return res
-            .status(500)
-            .json(response);
+        return res.status(500).json(response);
     }
 })
 
-//@route    DELETE api/user @desc     Delete an User @access   private
+//@route    DELETE api/user
+//@desc     Delete an User
+//@access   private
 
-router.delete('/', isEditorOrAbove, async(req, res) => {
-    const {id} = req.body;
+router.delete('/:id', [isEditorOrAbove], async(req, res) => {
+    const id = req.params.id;
 
     if (!id) {
         let response = {
@@ -315,9 +292,7 @@ router.delete('/', isEditorOrAbove, async(req, res) => {
                 desc: "User Id is neessary to delete an user."
             }
         }
-        return res
-            .status(400)
-            .json(response);
+        return res.status(400).json(response);
     }
 
     try {
@@ -330,9 +305,7 @@ router.delete('/', isEditorOrAbove, async(req, res) => {
                     desc: "User cannot deete another user with higher permission level"
                 }
             }
-            return res
-                .status(403)
-                .json(response);
+            return res.status(403).json(response);
         }
 
         if (user.id === req.user.id) {
@@ -342,9 +315,7 @@ router.delete('/', isEditorOrAbove, async(req, res) => {
                     desc: "User cannot delete own profile"
                 }
             }
-            return res
-                .status(403)
-                .json(response);
+            return res.status(403).json(response);
         }
 
         await User.deleteOne({_id: id});
@@ -356,9 +327,7 @@ router.delete('/', isEditorOrAbove, async(req, res) => {
             }
         }
 
-        return res
-            .status(200)
-            .json(response);
+        return res.status(200).json(response);
 
     } catch (err) {
         let response = {
@@ -368,9 +337,7 @@ router.delete('/', isEditorOrAbove, async(req, res) => {
                 msg: err
             }
         }
-        return res
-            .status(500)
-            .json(response);
+        return res.status(500).json(response);
     }
 
 })

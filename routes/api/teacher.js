@@ -7,20 +7,22 @@ const AWS = require('aws-sdk');
 const {v4} = require('uuid');
 require('dotenv').config();
 
-let s3 = new AWS.S3({accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY});
+let s3 = new AWS.S3({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: 'ap-south-1',
+    signatureVersion: 'v4'
+});
 
 const {isValidTeacher} = require('../../middleware/validation');
 const {isEditorOrAbove} = require('../../middleware/auth');
 const Teacher = require('../../models/teacher.js');
 
-//@route    POST api/teacher @desc     Create Teacher @access   private
+//@route    POST api/teacher
+//@desc     Create Teacher
+//@access   private
 
-router.post('/', [
-    upload.single('avatar'),
-    isEditorOrAbove,
-    isValidTeacher
-], async(req, res) => {
-
+router.post('/', [upload.single('avatar'), isEditorOrAbove, isValidTeacher], async(req, res) => {
     //Read and process request
     const {
         firstname,
@@ -64,9 +66,7 @@ router.post('/', [
                 }
             }
 
-            return res
-                .status(400)
-                .json(response);
+            return res.status(400).json(response);
         }
 
         //Upload file to S3
@@ -86,9 +86,7 @@ router.post('/', [
                         msg: err
                     }
                 }
-                return res
-                    .status(500)
-                    .json(response);
+                return res.status(500).json(response);
             }
         });
 
@@ -111,9 +109,7 @@ router.post('/', [
             }
         }
 
-        return res
-            .status(200)
-            .json(response);
+        return res.status(200).json(response);
 
     } catch (err) {
         let response = {
@@ -124,20 +120,18 @@ router.post('/', [
             }
         }
 
-        return res
-            .status(500)
-            .json(response);
+        return res.status(500).json(response);
     }
 })
 
-//@route    GET api/teacher/all @desc     Get All Teachers @access   private
+//@route    GET api/teacher/all
+//@desc     Get All Teachers
+//@access   private
 
 router.get('/all', [isEditorOrAbove], async(req, res) => {
     try {
         let teachers = await Teacher.find();
-        res
-            .status(200)
-            .json(teachers);
+        return res.status(200).json(teachers);
     } catch (err) {
         let response = {
             error: {
@@ -146,9 +140,37 @@ router.get('/all', [isEditorOrAbove], async(req, res) => {
                 msg: err
             }
         }
-        return res
-            .status(500)
-            .json(response);
+        return res.status(500).json(response);
+    }
+})
+
+//@route    GET api/teacher
+//@desc     Get a Teacher
+//@access   public
+
+router.get('/:id', async(req, res) => {
+    try {
+        const id = req.params.id;
+        let teacher = await Teacher.findById(id);
+
+        let params = {
+            Bucket: 'wingmait-teacher',
+            Key: teacher.avatar,
+            Expires: 28800
+        }
+        teacher.avatar = s3.getSignedUrl('getObject', params);
+        return res.status(200).json(teacher);
+
+    } catch (err) {
+        let response = {
+            error: {
+                title: "Server error",
+                desc: "An unexpected error occured.",
+                msg: err
+            }
+        }
+
+        return res.status(500).json(response);
     }
 })
 
