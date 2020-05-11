@@ -48,16 +48,17 @@ app.use( '/robots.txt', function (req, res, next) {
 });
 
 //Set up end points
-if ( process.env.NODE_ENV === 'production' ) {
+if ( process.env.NODE_ENV === "development" ) {
+  app.get ("/", (req, res) => res.send('api running') )
+} else {
   app.use( helmet() );
   app.use( yes() );
+  
   app.use( express.static(__dirname + '/client') );
 
   app.get('*', (req, res) => {
       res.sendFile(path.resolve(__dirname, 'client', 'index.html'));
   });
-} else {
-  app.get ("/", (req, res) => res.send('api running') )
 }
 
 //Set up Listening PORT
