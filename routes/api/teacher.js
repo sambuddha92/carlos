@@ -1,31 +1,61 @@
-const express =require('express');
+const express = require('express');
 const router = express.Router();
- 
+const multer = require('multer');
+var storage = multer.memoryStorage();
+var upload = multer({storage: storage});
+const AWS = require('aws-sdk');
+const {v4} = require('uuid');
 require('dotenv').config();
 
-const { isValidTeacher } = require('../../middleware/validation');
-const { isEditorOrAbove } = require('../../middleware/auth');
+let s3 = new AWS.S3({accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY});
+
+const {isValidTeacher} = require('../../middleware/validation');
+const {isEditorOrAbove} = require('../../middleware/auth');
 const Teacher = require('../../models/teacher.js');
 
-//@route    POST api/teacher
-//@desc     Create Teacher
-//@access   private
+//@route    POST api/teacher @desc     Create Teacher @access   private
 
-router.post('/', [ isValidTeacher, isEditorOrAbove ], async (req, res) => {
+router.post('/', [
+    upload.single('avatar'),
+    isEditorOrAbove,
+    isValidTeacher
+], async(req, res) => {
 
-        //Read and update request  
-        let { email, name, social, about } = req.body;
-    
-        const created = {
-          by: req.user.email,
-          on: Date.now()
-        }
-    
-        try {
-            //Check & handle if user exists
-            let teacher = await Teacher.findOne({ email });
+    //Read and process request
+    const {
+        firstname,
+        lastname,
+        email,
+        about,
+        facebook,
+        linkedin,
+        twitter
+    } = req.body;
 
-            if (teacher) {
+    const file = req.file;
+    const avatar = v4() + '_' + file.originalname;
+
+    const name = {
+        first: firstname,
+        last: lastname
+    }
+
+    const social = {
+        facebook,
+        linkedin,
+        twitter
+    }
+
+    const created = {
+        by: req.user.email,
+        on: Date.now()
+    }
+
+    try {
+        //Check & handle if user exists
+        let teacher = await Teacher.findOne({email});
+
+        if (teacher) {
 
             let response = {
                 error: {
@@ -34,60 +64,92 @@ router.post('/', [ isValidTeacher, isEditorOrAbove ], async (req, res) => {
                 }
             }
 
-            return res.status(400).json(response);
-            }
+            return res
+                .status(400)
+                .json(response);
+        }
 
-            //Initiate Teacher
-            teacher = new Teacher({
+        //Upload file to S3
+        let params = {
+            Bucket: 'wingmait-teacher',
+            Key: avatar,
+            Body: file.buffer,
+            ContentType: file.mimetype
+        };
+
+        s3.upload(params, function (err) {
+            if (err) {
+                let response = {
+                    error: {
+                        title: "Server error",
+                        desc: "An unexpected error occured.",
+                        msg: err
+                    }
+                }
+                return res
+                    .status(500)
+                    .json(response);
+            }
+        });
+
+        //Initiate Teacher
+        teacher = new Teacher({
             name,
             email,
             social,
+            avatar,
             about,
             created
-            });
+        });
 
-            await teacher.save();
+        await teacher.save();
 
-            let response = {
-                success: {
-                    title: "Teacher created",
-                    desc: "A teacher with the provided details has been created successfully."
-                }
-              }
-        
-            return res.status(200).json(response);
-
-        } catch (err) {
-            let response = {
-                error: {
-                    title: "Server error",
-                    desc: "An unexpected error occured.",
-                    msg: err
-                }
-              }
-        
-              return res.status(500).json(response);
+        let response = {
+            success: {
+                title: "Teacher created",
+                desc: "A teacher with the provided details has been created successfully."
+            }
         }
+
+        return res
+            .status(200)
+            .json(response);
+
+    } catch (err) {
+        let response = {
+            error: {
+                title: "Server error",
+                desc: "An unexpected error occured.",
+                msg: err
+            }
+        }
+
+        return res
+            .status(500)
+            .json(response);
+    }
 })
 
-//@route    GET api/teacher/all
-//@desc     Get All Teachers
-//@access   private
+//@route    GET api/teacher/all @desc     Get All Teachers @access   private
 
-router.get( '/all', [isEditorOrAbove], async (req, res) => {
+router.get('/all', [isEditorOrAbove], async(req, res) => {
     try {
-      let teachers = await Teacher.find();
-      res.status(200).json(teachers);
+        let teachers = await Teacher.find();
+        res
+            .status(200)
+            .json(teachers);
     } catch (err) {
-      let response = {
-        error: {
-            title: "Server error",
-            desc: "An unexpected error occured.",
-            msg: err
+        let response = {
+            error: {
+                title: "Server error",
+                desc: "An unexpected error occured.",
+                msg: err
+            }
         }
-      }
-      return res.status(500).json(response);
+        return res
+            .status(500)
+            .json(response);
     }
-  })
+})
 
 module.exports = router;

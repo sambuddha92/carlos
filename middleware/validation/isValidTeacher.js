@@ -1,5 +1,14 @@
 module.exports = (req, res, next) => {
-    const { name, email } = req.body;
+    let {
+        firstname,
+        lastname,
+        email,
+    } = req.body;
+
+    const name = {
+        first: firstname,
+        last: lastname
+    }
     var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     
     if ( !name.first || name.first.length < 1 || name.first === " " ) {
