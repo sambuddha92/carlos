@@ -1,0 +1,31 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "server": "nodemon server",
+    "client": "npm start --prefix ../client",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
+  },
+  "author": "Sambuddha Adhikari",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@sendgrid/mail": "^7.0.1",
+    "bcryptjs": "^2.4.3",
+    "concurrently": "^5.1.0",
+    "connect-flash": "^0.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "express-session": "^1.17.1",
+    "generate-password": "^1.5.1",
+    "helmet": "^3.22.0",
+    "mongoose": "^5.9.10",
+    "morgan": "^1.10.0",
+    "nodemon": "^2.0.3",
+    "passport": "^0.4.1",
+    "passport-local": "^1.0.0",
+    "yes-https": "^2.0.0"
+  }
+}
