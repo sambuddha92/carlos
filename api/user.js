@@ -7,9 +7,9 @@ const upload = multer().none();
 
 require('dotenv').config();
 
-const {isValidUser, isValidPasswordResetAttempt} = require('../../middleware/validation');
-const {isEditorOrAbove} = require('../../middleware/auth');
-const User = require('../../models/user.js');
+const {isValidUser} = require('../middleware/validation');
+const {isEditorOrAbove} = require('../middleware/auth');
+const User = require('../models/user.js');
 
 const permissionLevels = ['SUPERUSER', 'ADMIN', 'MODERATOR', 'EDITOR'];
 

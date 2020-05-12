@@ -1,8 +1,8 @@
 const express =require('express');
 const router = express.Router();
-const passport = require('../../config/passport');
+const passport = require('../config/passport');
 
-const { isValidLogInAttempt } = require('../../middleware/validation');
+const { isValidLogInAttempt } = require('../middleware/validation');
 
 //@route    GET api/auth
 //@desc     Authenticate Request

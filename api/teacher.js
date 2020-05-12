@@ -14,9 +14,9 @@ let s3 = new AWS.S3({
     signatureVersion: 'v4'
 });
 
-const {isValidTeacher} = require('../../middleware/validation');
-const {isEditorOrAbove} = require('../../middleware/auth');
-const Teacher = require('../../models/teacher.js');
+const {isValidTeacher} = require('../middleware/validation');
+const {isEditorOrAbove} = require('../middleware/auth');
+const Teacher = require('../models/teacher.js');
 
 //@route    POST api/teacher
 //@desc     Create Teacher
