@@ -248,6 +248,30 @@ router.delete('/:id', [isEditorOrAbove], async(req, res) => {
 
 router.put('/:id', async (req, res) => {
     const id = req.params.id;
+    //Read and process request
+    const {
+        firstname,
+        lastname,
+        email,
+        about,
+        facebook,
+        linkedin,
+        twitter
+    } = req.body;
+
+    const file = req.file;
+    const avatar = v4() + '_' + file.originalname;
+
+    const name = {
+        first: firstname,
+        last: lastname
+    }
+
+    const social = {
+        facebook,
+        linkedin,
+        twitter
+    }
 })
 
 module.exports = router;
