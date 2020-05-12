@@ -151,59 +151,6 @@ router.get('/all', [isEditorOrAbove], async(req, res) => {
     }
 })
 
-//@route    PUT api/user
-//@desc     Update Own Profile
-//@access   private
-
-router.put('/', async(req, res) => {
-    if (!req.user) {
-        let response = {
-            error: {
-                title: "Unauthorized",
-                desc: "User could not be authenticated."
-            }
-        }
-        return res.status(401).json(response);
-    }
-
-    const updates = req.body;
-
-    if (!updates.name || !updates.name.first) {
-        let response = {
-            error: {
-                title: "First name missing",
-                desc: "User must have a first name."
-            }
-        }
-        return res.status(400).json(response);
-    }
-
-    delete updates.password;
-    delete updates.created;
-    delete updates.permission;
-
-    try {
-        await User.findByIdAndUpdate(req.user.id, updates);
-        let response = {
-            success: {
-                title: "User updated successfully",
-                desc: "The user has been updated according to the given details."
-            }
-        }
-        return res.status(200).json(response);
-    } catch (err) {
-        let response = {
-            error: {
-                title: "Server error",
-                desc: "An unexpected error occured.",
-                msg: err
-            }
-        }
-
-        return res.status(500).json(response);
-    }
-})
-
 //@route    PUT api/user/password/reset
 //@desc     Reset Password of User
 //@access   private

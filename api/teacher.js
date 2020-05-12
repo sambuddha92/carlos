@@ -240,7 +240,14 @@ router.delete('/:id', [isEditorOrAbove], async(req, res) => {
         }
         return res.status(500).json(response);
     }
+})
 
+//@route    PUT api/teacher/id
+//@desc     Update a Teacher
+//@access   private
+
+router.put('/:id', async (req, res) => {
+    const id = req.params.id;
 })
 
 module.exports = router;
