@@ -174,4 +174,73 @@ router.get('/:id', async(req, res) => {
     }
 })
 
+//@route    DELETE api/teacher/id
+//@desc     Delete a Teacher
+//@access   private
+
+router.delete('/:id', [isEditorOrAbove], async(req, res) => {
+    const id = req.params.id;
+
+    if (!id) {
+        let response = {
+            error: {
+                title: "Teacher Id Missing",
+                desc: "Teacher Id is neessary to delete a teacher."
+            }
+        }
+        return res.status(400).json(response);
+    }
+
+    try {
+        let teacher = await Teacher.findById(id);
+
+        if ( teacher.courses.length > 0 ) {
+            let response = {
+                error: {
+                    title: "Access denied",
+                    desc: "Teachers with one or more courses cannot be deleted."
+                }
+            }
+            return res.status(403).json(response);
+        }
+        var params = {  Bucket: 'wingmait-teacher', Key: teacher.avatar };
+
+        s3.deleteObject(params, function(err) {
+            if (err) {
+                let response = {
+                    error: {
+                        title: "Server error",
+                        desc: "An unexpected error occured.",
+                        msg: err
+                    }
+                }
+                return res.status(500).json(response);
+            }
+          });
+
+
+        await Teacher.deleteOne({_id: id});
+
+        let response = {
+            success: {
+                title: "Teacher deleted",
+                desc: "The teacher has been deleted successfully"
+            }
+        }
+
+        return res.status(200).json(response);
+
+    } catch (err) {
+        let response = {
+            error: {
+                title: "Server error",
+                desc: "An unexpected error occured.",
+                msg: err
+            }
+        }
+        return res.status(500).json(response);
+    }
+
+})
+
 module.exports = router;
