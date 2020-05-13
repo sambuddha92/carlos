@@ -14,6 +14,8 @@ let s3 = new AWS.S3({
     signatureVersion: 'v4'
 });
 
+const s3Bucket = 'wingmait-teacher';
+
 const {isValidTeacher} = require('../middleware/validation');
 const {isEditorOrAbove} = require('../middleware/auth');
 const Teacher = require('../models/teacher.js');
@@ -66,21 +68,32 @@ router.post('/', [upload.single('avatar'), isEditorOrAbove, isValidTeacher], asy
             return res.status(400).json(response);
         }
 
+        let avatar = {
+            bucket: '',
+            key: '',
+            url: 'https://wingmait-public.s3.ap-south-1.amazonaws.com/profile-placeholder.jpg'
+        }
+
         let updates = {
             name,
             email,
             social,
             about,
-            created
+            created,
+            avatar
         }
 
         if (req.file) {
             const file = req.file;
-            const avatar = v4() + '_' + file.originalname;
+            avatar = {
+                bucket: s3Bucket,
+                key: v4() + '_' + file.originalname,
+                url: ''
+            }
             //Upload file to S3
             let params = {
-                Bucket: 'wingmait-teacher',
-                Key: avatar,
+                Bucket: avatar.bucket,
+                Key: avatar.key,
                 Body: file.buffer,
                 ContentType: file.mimetype
             };
@@ -137,6 +150,7 @@ router.get('/all', [isEditorOrAbove], async(req, res) => {
         let teachers = await Teacher.find();
         return res.status(200).json(teachers);
     } catch (err) {
+        console.log(err);
         let response = {
             error: {
                 title: "Server error",
@@ -156,13 +170,15 @@ router.get('/:id', async(req, res) => {
     try {
         const id = req.params.id;
         let teacher = await Teacher.findById(id);
-
-        let params = {
-            Bucket: 'wingmait-teacher',
-            Key: teacher.avatar,
-            Expires: 28800
+        if (teacher.avatar.bucket && teacher.avatar.key) {
+            let params = {
+                Bucket: teacher.avatar.bucket,
+                Key: teacher.avatar.key,
+                Expires: 28800
+            }
+            teacher.avatar.url = s3.getSignedUrl('getObject', params)
         }
-        teacher.avatar = s3.getSignedUrl('getObject', params);
+
         return res.status(200).json(teacher);
 
     } catch (err) {
@@ -184,6 +200,7 @@ router.get('/:id', async(req, res) => {
 
 router.put('/:id', [upload.single('avatar'), isValidTeacher], async (req, res) => {
     const id = req.params.id;
+    const teacher = await Teacher.findById(id);
     //Read and process request
     const {
         firstname,
@@ -214,13 +231,18 @@ router.put('/:id', [upload.single('avatar'), isValidTeacher], async (req, res) =
     }
 
     try {
+
         if (req.file) {
             const file = req.file;
-            const avatar = v4() + '_' + file.originalname;
+            let avatar = {
+                bucket: s3Bucket,
+                key: v4() + '_' + file.originalname,
+                url: ''
+            }
             //Upload file to S3
             let params = {
-                Bucket: 'wingmait-teacher',
-                Key: avatar,
+                Bucket: avatar.bucket,
+                Key: avatar.key,
                 Body: file.buffer,
                 ContentType: file.mimetype
             };
@@ -237,24 +259,25 @@ router.put('/:id', [upload.single('avatar'), isValidTeacher], async (req, res) =
                     return res.status(500).json(response);
                 }
             });
+
+            //Find and delete old image from s3
+            if (teacher.avatar.bucket && teacher.avatar.key) {
+                s3.deleteObject({  Bucket: teacher.avatar.bucket, Key: teacher.avatar.key }, function(err) {
+                    if (err) {
+                        let response = {
+                            error: {
+                                title: "Server error",
+                                desc: "An unexpected error occured.",
+                                msg: err
+                            }
+                        }
+                        return res.status(500).json(response);
+                    }
+                });   
+            }
     
             updates.avatar = avatar;
         }
-
-        //Find and delete old image from s3
-        let teacher = await Teacher.findById(id);
-        s3.deleteObject({  Bucket: 'wingmait-teacher', Key: teacher.avatar }, function(err) {
-            if (err) {
-                let response = {
-                    error: {
-                        title: "Server error",
-                        desc: "An unexpected error occured.",
-                        msg: err
-                    }
-                }
-                return res.status(500).json(response);
-            }
-          });
     
         await Teacher.findByIdAndUpdate(id, updates);
 
@@ -309,21 +332,23 @@ router.delete('/:id', [isEditorOrAbove], async(req, res) => {
             }
             return res.status(403).json(response);
         }
-        var params = {  Bucket: 'wingmait-teacher', Key: teacher.avatar };
+        
+        if (teacher.avatar.bucket && teacher.avatar.key) {
+            var params = {  Bucket: teacher.avatar.bucket, Key: teacher.avatar.key };
 
-        s3.deleteObject(params, function(err) {
-            if (err) {
-                let response = {
-                    error: {
-                        title: "Server error",
-                        desc: "An unexpected error occured.",
-                        msg: err
+            s3.deleteObject(params, function(err) {
+                if (err) {
+                    let response = {
+                        error: {
+                            title: "Server error",
+                            desc: "An unexpected error occured.",
+                            msg: err
+                        }
                     }
+                    return res.status(500).json(response);
                 }
-                return res.status(500).json(response);
-            }
-          });
-
+            });
+        }
 
         await Teacher.deleteOne({_id: id});
 
@@ -344,6 +369,7 @@ router.delete('/:id', [isEditorOrAbove], async(req, res) => {
                 msg: err
             }
         }
+        console.log(err);
         return res.status(500).json(response);
     }
 })

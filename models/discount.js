@@ -7,7 +7,7 @@ const Schema = new mongoose.Schema({
         ref: 'Course',
         required: true
       },
-      type: {
+      discounttype: {
           type: String,
           required: true,
           default: "PERCENTAGE"

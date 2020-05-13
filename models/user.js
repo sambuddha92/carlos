@@ -22,11 +22,13 @@ const Schema = new mongoose.Schema({
     permission: {
       level: {
         type: Number,
+        enum: [0,1,2,3],
         required: true,
         default: 3
       },
       title: {
         type: String,
+        enum: ["SUPERUSER", "ADMIN", "MODERATOR", "EDITOR"],
         required: true,
         default: "EDITOR"
       }

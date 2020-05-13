@@ -11,20 +11,14 @@ const Schema = new mongoose.Schema({
         type: String,
         required: true
     },
-    type: {
+    lessontype: {
         type: String,
+        enum: ['PDF', 'VIDEO', 'QUIZ'],
         required: true
     },
     resource: {
-        bucket: {
-            type: String
-        },
-        folder: {
-            type: String
-        },
-        file: {
-            type: String
-        }
+        bucket: String,
+        key: String
     }
 })
 

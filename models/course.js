@@ -2,6 +2,12 @@ const mongoose = require('mongoose');
 
 // Define the model
 const Schema = new mongoose.Schema({
+    status:{
+        type: String,
+        enum: ['INCOMPLETE', 'COMPLETE_PAUSED', 'COMPLETE_LIVE'],
+        default: 'INCOMPLETE',
+        required: true
+    },
     teacher: {
         type: mongoose.Schema.ObjectId,
         ref: 'Teacher',
@@ -21,42 +27,28 @@ const Schema = new mongoose.Schema({
         required: true
     },
     fees: {
-        price: {
+        mrp: {
             type: Number,
             required: true
         },
-        discount: {
-            type: Number
+        sp: {
+            type: Number,
+            required: true
         }
     },
-    tags: [ 
-        {
-            tag: {
-                type: String,
-                required: true
-            }
-        }
-    ],
-    sections: [
-        {
-            title: {
-                type: String,
-                required: true
-            },
-            lessons: [
-                {
-                    lesson: {
-                        type: mongoose.Schema.ObjectId,
-                        ref: 'Lesson'
-                    }
-                }
-            ]
-        }
-    ],
-    active: {
-        type: Boolean,
-        default: false
-    }
+    tags: [{
+        type: String
+    }],
+    sections: [{
+        title: {
+            type: String,
+            required: true
+        },
+        lessons: [{
+            type: mongoose.Schema.ObjectId,
+            ref: 'Lesson'
+        }]
+    }]
 })
 
 // Export the model

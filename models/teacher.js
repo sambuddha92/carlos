@@ -27,19 +27,22 @@ const Schema = new mongoose.Schema({
       }
     },
     avatar: {
-      type: String
+      bucket: {
+        type: String,
+        default: 'wingmait-teacher'
+      },
+      key: {
+        type: String,
+        default: 'profile-placeholder.jpg'
+      },
+      url: {
+        type: String,
+        default: 'https://wingmait-public.s3.ap-south-1.amazonaws.com/profile-placeholder.jpg'
+      }
     },
     about: {
       type: String
     },
-    courses: [
-      {
-        course: {
-          type: mongoose.Schema.ObjectId,
-          ref: 'Course'
-        }
-      }
-    ],
     created: {
       by: {
         type: String,
@@ -50,7 +53,8 @@ const Schema = new mongoose.Schema({
         required: true,
         default: Date.now()
       }
-    }
+    },
+    courses: []
 })
 
 
