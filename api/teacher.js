@@ -34,9 +34,6 @@ router.post('/', [upload.single('avatar'), isEditorOrAbove, isValidTeacher], asy
         twitter
     } = req.body;
 
-    const file = req.file;
-    const avatar = v4() + '_' + file.originalname;
-
     const name = {
         first: firstname,
         last: lastname
@@ -69,36 +66,43 @@ router.post('/', [upload.single('avatar'), isEditorOrAbove, isValidTeacher], asy
             return res.status(400).json(response);
         }
 
-        //Upload file to S3
-        let params = {
-            Bucket: 'wingmait-teacher',
-            Key: avatar,
-            Body: file.buffer,
-            ContentType: file.mimetype
-        };
-
-        s3.upload(params, function (err) {
-            if (err) {
-                let response = {
-                    error: {
-                        title: "Server error",
-                        desc: "An unexpected error occured.",
-                        msg: err
-                    }
-                }
-                return res.status(500).json(response);
-            }
-        });
-
-        //Initiate Teacher
-        teacher = new Teacher({
+        let updates = {
             name,
             email,
             social,
-            avatar,
             about,
             created
-        });
+        }
+
+        if (req.file) {
+            const file = req.file;
+            const avatar = v4() + '_' + file.originalname;
+            //Upload file to S3
+            let params = {
+                Bucket: 'wingmait-teacher',
+                Key: avatar,
+                Body: file.buffer,
+                ContentType: file.mimetype
+            };
+    
+            s3.upload(params, function (err) {
+                if (err) {
+                    let response = {
+                        error: {
+                            title: "Server error",
+                            desc: "An unexpected error occured.",
+                            msg: err
+                        }
+                    }
+                    return res.status(500).json(response);
+                }
+            });
+    
+            updates.avatar = avatar;
+        }
+
+        //Initiate Teacher
+        teacher = new Teacher(updates);
 
         await teacher.save();
 
@@ -174,6 +178,108 @@ router.get('/:id', async(req, res) => {
     }
 })
 
+//@route    PUT api/teacher/id
+//@desc     Update a Teacher
+//@access   private
+
+router.put('/:id', [upload.single('avatar'), isValidTeacher], async (req, res) => {
+    const id = req.params.id;
+    //Read and process request
+    const {
+        firstname,
+        lastname,
+        email,
+        about,
+        facebook,
+        linkedin,
+        twitter
+    } = req.body;
+
+    const name = {
+        first: firstname,
+        last: lastname
+    }
+
+    const social = {
+        facebook,
+        linkedin,
+        twitter
+    }
+
+    let updates = {
+        name,
+        email,
+        social,
+        about
+    }
+
+    try {
+        if (req.file) {
+            const file = req.file;
+            const avatar = v4() + '_' + file.originalname;
+            //Upload file to S3
+            let params = {
+                Bucket: 'wingmait-teacher',
+                Key: avatar,
+                Body: file.buffer,
+                ContentType: file.mimetype
+            };
+    
+            s3.upload(params, function (err) {
+                if (err) {
+                    let response = {
+                        error: {
+                            title: "Server error",
+                            desc: "An unexpected error occured.",
+                            msg: err
+                        }
+                    }
+                    return res.status(500).json(response);
+                }
+            });
+    
+            updates.avatar = avatar;
+        }
+
+        //Find and delete old image from s3
+        let teacher = await Teacher.findById(id);
+        s3.deleteObject({  Bucket: 'wingmait-teacher', Key: teacher.avatar }, function(err) {
+            if (err) {
+                let response = {
+                    error: {
+                        title: "Server error",
+                        desc: "An unexpected error occured.",
+                        msg: err
+                    }
+                }
+                return res.status(500).json(response);
+            }
+          });
+    
+        await Teacher.findByIdAndUpdate(id, updates);
+
+        let response = {
+            success: {
+                title: "Teacher Updated",
+                desc: "The details have been updated successfully"
+            }
+        }
+        return res.status(200).json(response);
+        
+    } catch (err) {
+        console.log(err);
+        let response = {
+            error: {
+                title: "Server error",
+                desc: "An unexpected error occured.",
+                msg: err
+            }
+        }
+        return res.status(500).json(response);
+    }
+    
+})
+
 //@route    DELETE api/teacher/id
 //@desc     Delete a Teacher
 //@access   private
@@ -239,38 +345,6 @@ router.delete('/:id', [isEditorOrAbove], async(req, res) => {
             }
         }
         return res.status(500).json(response);
-    }
-})
-
-//@route    PUT api/teacher/id
-//@desc     Update a Teacher
-//@access   private
-
-router.put('/:id', async (req, res) => {
-    const id = req.params.id;
-    //Read and process request
-    const {
-        firstname,
-        lastname,
-        email,
-        about,
-        facebook,
-        linkedin,
-        twitter
-    } = req.body;
-
-    const file = req.file;
-    const avatar = v4() + '_' + file.originalname;
-
-    const name = {
-        first: firstname,
-        last: lastname
-    }
-
-    const social = {
-        facebook,
-        linkedin,
-        twitter
     }
 })
 
