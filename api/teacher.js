@@ -169,7 +169,7 @@ router.get('/all', [isEditorOrAbove], async(req, res) => {
 router.get('/:id', async(req, res) => {
     try {
         const id = req.params.id;
-        let teacher = await Teacher.findById(id);
+        let teacher = await Teacher.findById(id).populate('courses');
         if (teacher.avatar.bucket && teacher.avatar.key) {
             let params = {
                 Bucket: teacher.avatar.bucket,

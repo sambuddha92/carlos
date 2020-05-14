@@ -54,7 +54,10 @@ const Schema = new mongoose.Schema({
         default: Date.now()
       }
     },
-    courses: []
+    courses: [{
+      type: mongoose.Schema.ObjectId,
+      ref: 'Course'
+    }]
 })
 
 

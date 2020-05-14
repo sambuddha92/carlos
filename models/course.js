@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const Schema = new mongoose.Schema({
     status:{
         type: String,
-        enum: ['INCOMPLETE', 'COMPLETE_PAUSED', 'COMPLETE_LIVE'],
+        enum: ['INCOMPLETE', 'LIVE', 'PAUSED'],
         default: 'INCOMPLETE',
         required: true
     },
@@ -18,22 +18,19 @@ const Schema = new mongoose.Schema({
         unique: true,
         required: true
     },
-    subtitle: {
+    titleId: {
         type: String,
+        unique: true,
         required: true
     },
-    description: {
-        type: String,
-        required: true
-    },
+    subtitle: String,
+    description: String,
     fees: {
         mrp: {
-            type: Number,
-            required: true
+            type: Number
         },
         sp: {
-            type: Number,
-            required: true
+            type: Number
         }
     },
     tags: [{
@@ -42,7 +39,6 @@ const Schema = new mongoose.Schema({
     sections: [{
         title: {
             type: String,
-            required: true
         },
         lessons: [{
             type: mongoose.Schema.ObjectId,
