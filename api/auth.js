@@ -54,10 +54,8 @@ router.get( '/', (req, res) => {
 router.post( '/local', isValidLogInAttempt, passport.authenticate('local'), (req, res) => {
 
     let response = {
-        success: {
-            title: "Logged in",
-            desc: "User has been logged in successfully"
-        },
+        success: true,
+        msg: "Logged In",
         payload: {
             name: req.user.name.first,
             permission: req.user.permission.level,
@@ -76,25 +74,17 @@ router.get( '/logout', (req, res) => {
     
     try {
         req.logOut();
-        
         let response = {
-            success: {
-                title: "Logged out",
-                desc: "User has been logged out successfully"
-            }
+            success: true,
+            msg: "Logged Out"
         }
-
         return res.status(200).json(response);    
     } catch (err) {
-
         let response = {
-            error: {
-                title: "Server error",
-                desc: "An unexpected error occured.",
-                msg: err
-            }
+            success: false,
+            msg: "Server Error",
+            details: err
           }
-
         return res.status(500).json(response);
     }
     
