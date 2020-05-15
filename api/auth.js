@@ -57,9 +57,7 @@ router.post( '/local', isValidLogInAttempt, passport.authenticate('local'), (req
         success: true,
         msg: "Logged In",
         payload: {
-            name: req.user.name.first,
-            permission: req.user.permission.level,
-            expiry: Date.now() + 43200000
+            permission: req.user.permission.level
         }
       }
 
