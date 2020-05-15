@@ -4,10 +4,9 @@ module.exports = (req, res, next) => {
 
     if ( !user ) {
         let response = {
-            error: {
-                title: "Unauthorized",
-                desc: "User could not be authenticated"
-            }
+            success: false,
+            msg: "Unauthorized",
+            details: "User identity could not be authenticated"
         }
         return res.status(401).json(response);
     }
@@ -16,10 +15,9 @@ module.exports = (req, res, next) => {
 
     if ( permission.level > 3 ) {
         let response = {
-            error: {
-                title: "Access denied",
-                desc: "Insufficient permission for the requested resource."
-            }
+            success: false,
+            msg: "Insufficient permission",
+            details: "User does not have sufficient permission to perform this action"
         }
         return res.status(403).json(response);
     }

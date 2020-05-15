@@ -39,10 +39,9 @@ router.post('/', [ upload, isValidUser, isEditorOrAbove ], async(req, res) => {
 
     if (permissionlevel && permission && permission.level < req.user.permission.level) {
         let response = {
-            error: {
-                title: "Access Denied",
-                desc: "New user's permission level canot be above the requesting user."
-            }
+            success: false,
+            msg: "Insufficient Permission",
+            details: "User cannot create another user with higher permission level"
         }
 
         return res.status(403).json(response);
@@ -57,10 +56,9 @@ router.post('/', [ upload, isValidUser, isEditorOrAbove ], async(req, res) => {
         if (user) {
 
             let response = {
-                error: {
-                    title: "User already exists",
-                    desc: "An user with the same email id already exists."
-                }
+                success: false,
+                msg: "Duplicate User",
+                details: "An user with the provided email id already exists"
             }
 
             return res.status(400).json(response);
@@ -76,6 +74,7 @@ router.post('/', [ upload, isValidUser, isEditorOrAbove ], async(req, res) => {
         //Save user
         await user.save();
 
+
         //Send email to new user
         const msg = {
             to: user.email,
@@ -89,22 +88,22 @@ router.post('/', [ upload, isValidUser, isEditorOrAbove ], async(req, res) => {
         sgMail.setApiKey(process.env.SENDGRID_API_KEY);
         sgMail.send(msg);
 
+        const updatedUsers = await User.find();
+
         let response = {
-            success: {
-                title: "User created",
-                desc: "An user with the provided details has been created successfully."
-            }
+            success: true,
+            msg: "User Created",
+            payload: updatedUsers
         }
 
         return res.status(200).json(response);
 
     } catch (err) {
         let response = {
-            error: {
-                title: "Server error",
-                desc: "An unexpected error occured.",
-                msg: err
-            }
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while creating a new user",
+            error: err
         }
 
         return res.status(500).json(response);
@@ -119,15 +118,20 @@ router.post('/', [ upload, isValidUser, isEditorOrAbove ], async(req, res) => {
 router.get('/', (req, res) => {
     if (!req.user) {
         let response = {
-            error: {
-                title: "Unauthorized",
-                desc: "User could not be authenticated"
-            }
+            success: false,
+            msg: "Unauthorized",
+            details: "User could not be authenticated"
         }
         return res.status(401).json(response);
     }
 
-    return res.status(200).json(req.user);
+    let response = {
+        success: true,
+        msg: "Got User",
+        payload: req.user
+    }
+
+    return res.status(200).json(response);
 })
 
 //@route    GET api/user/all
@@ -138,14 +142,18 @@ router.get('/all', [isEditorOrAbove], async(req, res) => {
     try {
         let users = await User.find();
         let filteredUsers = users.filter(user => (user.permission.level >= req.user.permission.level))
-        return res.status(200).json(filteredUsers);
+        let response = {
+            success: true,
+            msg: "Got All Users",
+            payload: filteredUsers
+        }
+        return res.status(200).json(response);
     } catch (err) {
         let response = {
-            error: {
-                title: "Server error",
-                desc: "An unexpected error occured.",
-                msg: err
-            }
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while creating getting all users",
+            error: err
         }
         return res.status(500).json(response);
     }
@@ -161,10 +169,9 @@ router.put('/password/reset', [isEditorOrAbove], async(req, res) => {
 
     if (!id) {
         let response = {
-            error: {
-                title: "User Id Missing",
-                desc: "User Id is neessary to delete an user."
-            }
+            success: false,
+            msg: "User Id Missing",
+            details: "User Id is mandatory to delete an user"
         }
         return res.status(400).json(response);
     }
@@ -175,10 +182,9 @@ router.put('/password/reset', [isEditorOrAbove], async(req, res) => {
 
         if (user.permission.level < req.user.permission.level) {
             let response = {
-                error: {
-                    title: "Access denied",
-                    desc: "User cannot reset password for another user with higher permission level"
-                }
+                success: false,
+                msg: "Insufficient Permission",
+                details: "An user cannot reset password for another user with higher permission level"
             }
             return res.status(403).json(response);
         }
@@ -205,21 +211,17 @@ router.put('/password/reset', [isEditorOrAbove], async(req, res) => {
         sgMail.send(msg);
 
         let response = {
-            success: {
-                title: "Password Reset",
-                desc: "The Password for the user has been updated successfully and they have received a" +
-                        "n email with new credentials."
-            }
+            success: false,
+            msg: "Password Reset Successful"
         }
         return res.status(200).json(response);
 
     } catch (err) {
         let response = {
-            error: {
-                title: "Server error",
-                desc: "An unexpected error occured.",
-                msg: err
-            }
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while resetting password for an user",
+            error: err
         }
         return res.status(500).json(response);
     }
@@ -234,10 +236,9 @@ router.delete('/:id', [isEditorOrAbove], async(req, res) => {
 
     if (!id) {
         let response = {
-            error: {
-                title: "User Id Missing",
-                desc: "User Id is neessary to delete an user."
-            }
+            success: false,
+            msg: "User Id Missing",
+            details: "User Id is mandatory to delete an user"
         }
         return res.status(400).json(response);
     }
@@ -247,42 +248,39 @@ router.delete('/:id', [isEditorOrAbove], async(req, res) => {
 
         if (user.permission.level < req.user.permission.level) {
             let response = {
-                error: {
-                    title: "Access denied",
-                    desc: "User cannot deete another user with higher permission level"
-                }
+                success: false,
+                msg: "Insufficient permission",
+                details: "User cannot delete another user with higher permission level"
             }
             return res.status(403).json(response);
         }
 
         if (user.id === req.user.id) {
             let response = {
-                error: {
-                    title: "Access denied",
-                    desc: "User cannot delete own profile"
-                }
+                success: false,
+                msg: "Insufficient Permission",
+                details: "User cannot delete their own profile"
             }
             return res.status(403).json(response);
         }
 
         await User.deleteOne({_id: id});
+        const updatedUsers = await User.find();
 
         let response = {
-            success: {
-                title: "User deleted",
-                desc: "The user has been deleted successfully"
-            }
+            success: false,
+            msg: "User Deleted",
+            payload: updatedUsers
         }
 
         return res.status(200).json(response);
 
     } catch (err) {
         let response = {
-            error: {
-                title: "Server error",
-                desc: "An unexpected error occured.",
-                msg: err
-            }
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while deleting an user",
+            error: err
         }
         return res.status(500).json(response);
     }

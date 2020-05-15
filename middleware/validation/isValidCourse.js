@@ -6,20 +6,18 @@ module.exports = (req, res, next) => {
 
     if ( !teacherid ) {
         let response = {
-            error: {
-                title: "Teacher is missing",
-                desc: "Teacher is mandatory to create a new course"
-            }
+            success: false,
+            msg: "Teacher ID Missing",
+            details: "Teacher ID is mandatory to create a new course"
         }
         return res.status(400).json(response);
     }
 
     if ( !title ) {
         let response = {
-            error: {
-                title: "Title is missing",
-                desc: "Title is mandatory to create a new course"
-            }
+            success: false,
+            msg: "Course Title Missing",
+            details: "Course title is mandatory to create a new course"
         }
         return res.status(400).json(response);
     }

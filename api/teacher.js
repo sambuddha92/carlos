@@ -59,10 +59,9 @@ router.post('/', [upload.single('avatar'), isEditorOrAbove, isValidTeacher], asy
         if (teacher) {
 
             let response = {
-                error: {
-                    title: "Teacher already exists",
-                    desc: "A teacher with the same email id already exists."
-                }
+                success: false,
+                msg: "Duplicate Teacher Email",
+                details: "The email ID provided is already mapped to an existing teacher"
             }
 
             return res.status(400).json(response);
@@ -101,11 +100,10 @@ router.post('/', [upload.single('avatar'), isEditorOrAbove, isValidTeacher], asy
             s3.upload(params, function (err) {
                 if (err) {
                     let response = {
-                        error: {
-                            title: "Server error",
-                            desc: "An unexpected error occured.",
-                            msg: err
-                        }
+                        success: false,
+                        msg: "Server Error",
+                        details: "Encountered an error while trying to upload the new avatar to S3",
+                        error: err
                     }
                     return res.status(500).json(response);
                 }
@@ -118,23 +116,23 @@ router.post('/', [upload.single('avatar'), isEditorOrAbove, isValidTeacher], asy
         teacher = new Teacher(updates);
 
         await teacher.save();
+        
+        const updatedTeachers = await Teacher.find();
 
         let response = {
-            success: {
-                title: "Teacher created",
-                desc: "A teacher with the provided details has been created successfully."
-            }
+            success: true,
+            msg: "Teacher Created",
+            payload: updatedTeachers
         }
 
         return res.status(200).json(response);
 
     } catch (err) {
         let response = {
-            error: {
-                title: "Server error",
-                desc: "An unexpected error occured.",
-                msg: err
-            }
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while creating a new teacher",
+            error: err
         }
 
         return res.status(500).json(response);
@@ -148,15 +146,19 @@ router.post('/', [upload.single('avatar'), isEditorOrAbove, isValidTeacher], asy
 router.get('/all', [isEditorOrAbove], async(req, res) => {
     try {
         let teachers = await Teacher.find();
-        return res.status(200).json(teachers);
-    } catch (err) {
-        console.log(err);
+
         let response = {
-            error: {
-                title: "Server error",
-                desc: "An unexpected error occured.",
-                msg: err
-            }
+            success: true,
+            msg: "All Teachers",
+            payload: teachers
+        }
+        return res.status(200).json(response);
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while getting all teachers",
+            error: err
         }
         return res.status(500).json(response);
     }
@@ -170,24 +172,39 @@ router.get('/:id', async(req, res) => {
     try {
         const id = req.params.id;
         let teacher = await Teacher.findById(id).populate('courses');
+        
+        if (!teacher) {
+            let response = {
+                success: false,
+                msg: "Invalid URL",
+                details: "The teacher id passed on as URL parameter does not correspond to any existing teacher"
+            }
+            return res.status(400).json(response);
+        }
+
         if (teacher.avatar.bucket && teacher.avatar.key) {
             let params = {
                 Bucket: teacher.avatar.bucket,
                 Key: teacher.avatar.key,
                 Expires: 28800
             }
-            teacher.avatar.url = s3.getSignedUrl('getObject', params)
+            teacher.avatar.url = s3.getSignedUrl('getObject', params);
         }
 
-        return res.status(200).json(teacher);
+        let response = {
+            success: true,
+            msg: "Teacher",
+            payload: teacher
+        }
+
+        return res.status(200).json(response);
 
     } catch (err) {
         let response = {
-            error: {
-                title: "Server error",
-                desc: "An unexpected error occured.",
-                msg: err
-            }
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while getting teacher",
+            error: err
         }
 
         return res.status(500).json(response);
@@ -201,6 +218,16 @@ router.get('/:id', async(req, res) => {
 router.put('/:id', [upload.single('avatar'), isValidTeacher], async (req, res) => {
     const id = req.params.id;
     const teacher = await Teacher.findById(id);
+    
+    if (!teacher) {
+        let response = {
+            success: false,
+            msg: "Invalid URL",
+            details: "The teacher id passed on as URL parameter does not correspond to any existing teacher"
+        }
+        return res.status(400).json(response);
+    }
+
     //Read and process request
     const {
         firstname,
@@ -227,7 +254,8 @@ router.put('/:id', [upload.single('avatar'), isValidTeacher], async (req, res) =
         name,
         email,
         social,
-        about
+        about,
+        avatar: teacher.avatar
     }
 
     try {
@@ -250,12 +278,12 @@ router.put('/:id', [upload.single('avatar'), isValidTeacher], async (req, res) =
             s3.upload(params, function (err) {
                 if (err) {
                     let response = {
-                        error: {
-                            title: "Server error",
-                            desc: "An unexpected error occured.",
-                            msg: err
-                        }
+                        success: false,
+                        msg: "Server Error",
+                        details: "Encountered an error while trying to upload the new avatar to S3",
+                        error: err
                     }
+
                     return res.status(500).json(response);
                 }
             });
@@ -265,11 +293,10 @@ router.put('/:id', [upload.single('avatar'), isValidTeacher], async (req, res) =
                 s3.deleteObject({  Bucket: teacher.avatar.bucket, Key: teacher.avatar.key }, function(err) {
                     if (err) {
                         let response = {
-                            error: {
-                                title: "Server error",
-                                desc: "An unexpected error occured.",
-                                msg: err
-                            }
+                            success: false,
+                            msg: "Server Error",
+                            details: "Encountered an error while trying to delete the previous avatar from S3",
+                            error: err
                         }
                         return res.status(500).json(response);
                     }
@@ -279,25 +306,36 @@ router.put('/:id', [upload.single('avatar'), isValidTeacher], async (req, res) =
             updates.avatar = avatar;
         }
     
-        await Teacher.findByIdAndUpdate(id, updates);
+        const updatedTeacher = await Teacher.findByIdAndUpdate(id, updates, {new: true});
+
+        if (updatedTeacher.avatar.bucket && updatedTeacher.avatar.key) {
+
+            let params = {
+                Bucket: updatedTeacher.avatar.bucket,
+                Key: updatedTeacher.avatar.key,
+                Expires: 28800
+            }
+
+            updatedTeacher.avatar.url = s3.getSignedUrl('getObject', params);
+        }
 
         let response = {
-            success: {
-                title: "Teacher Updated",
-                desc: "The details have been updated successfully"
-            }
+            success: true,
+            msg: "Teacher Updated",
+            payload: updatedTeacher
         }
+
         return res.status(200).json(response);
         
     } catch (err) {
-        console.log(err);
+
         let response = {
-            error: {
-                title: "Server error",
-                desc: "An unexpected error occured.",
-                msg: err
-            }
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while updating teacher profile",
+            error: err
         }
+
         return res.status(500).json(response);
     }
     
@@ -312,10 +350,10 @@ router.delete('/:id', [isEditorOrAbove], async(req, res) => {
 
     if (!id) {
         let response = {
-            error: {
-                title: "Teacher Id Missing",
-                desc: "Teacher Id is neessary to delete a teacher."
-            }
+            success: false,
+            msg: "Teacher Id Missing",
+            details: "Request URL does not contain a teacher id",
+            error: err
         }
         return res.status(400).json(response);
     }
@@ -325,10 +363,9 @@ router.delete('/:id', [isEditorOrAbove], async(req, res) => {
 
         if ( teacher.courses.length > 0 ) {
             let response = {
-                error: {
-                    title: "Access denied",
-                    desc: "Teachers with one or more courses cannot be deleted."
-                }
+                success: false,
+                msg: "Cannot Delete",
+                details: "Teachers with one or more courses cannot be deleted"
             }
             return res.status(403).json(response);
         }
@@ -341,7 +378,7 @@ router.delete('/:id', [isEditorOrAbove], async(req, res) => {
                     let response = {
                         error: {
                             title: "Server error",
-                            desc: "An unexpected error occured.",
+                            desc: "An unexpected error occured while trying to delete avatar from S3",
                             msg: err
                         }
                     }
@@ -352,24 +389,23 @@ router.delete('/:id', [isEditorOrAbove], async(req, res) => {
 
         await Teacher.deleteOne({_id: id});
 
+        const updatedTeachers = await Teacher.find();
+
         let response = {
-            success: {
-                title: "Teacher deleted",
-                desc: "The teacher has been deleted successfully"
-            }
+            success: true,
+            msg: "Teacher Deleted",
+            payload: updatedTeachers
         }
 
         return res.status(200).json(response);
 
     } catch (err) {
         let response = {
-            error: {
-                title: "Server error",
-                desc: "An unexpected error occured.",
-                msg: err
-            }
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while deleting teacher",
+            error: err
         }
-        console.log(err);
         return res.status(500).json(response);
     }
 })

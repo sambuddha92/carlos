@@ -37,10 +37,9 @@ router.post('/', [upload.none(), isValidCourse, isEditorOrAbove], async (req, re
         const teacher = await Teacher.findById(teacherid);
         if (!teacher) {
             let response = {
-                error: {
-                    title: "Teacher not found",
-                    desc: "The provided teacher id does not correspond to a teacher in database."
-                }
+                success: false,
+                msg: "Teacher does not exist",
+                details: "The teacher id provided does not correspond to an existing teacher"
             }
             return res.status(400).json(response);
         }
@@ -50,10 +49,9 @@ router.post('/', [upload.none(), isValidCourse, isEditorOrAbove], async (req, re
         let course = await Course.findOne({titleId});
         if (course) {
             let response = {
-                success: {
-                    title: "Duplicate Course Title",
-                    desc: "Another course with same title exists. Please choose a different title.",
-                }
+                success: false,
+                msg: "Duplicate Course Title",
+                details: "The selected course title is already in use"
             }
             return res.status(400).json(response);
         }
@@ -73,22 +71,22 @@ router.post('/', [upload.none(), isValidCourse, isEditorOrAbove], async (req, re
         teacherCourses.push(mongoose.Types.ObjectId(newCourse.id));
         await Teacher.findByIdAndUpdate(teacherid, {courses: teacherCourses});
 
+        const updatedCourses = await Course.find().populate('teacher');
+
         let response = {
-            success: {
-                title: "Course created",
-                desc: "A course with the provided details has been created successfully."
-            }
+            success: true,
+            msg: "Course Created",
+            payload: updatedCourses
         }
 
         return res.status(200).json(response);
 
     } catch (err) {
         let response = {
-            error: {
-                title: "Server error",
-                desc: "An unexpected error occured.",
-                msg: err
-            }
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while creating a new course",
+            error: err
         }
         return res.status(500).json(response);
     }
@@ -101,14 +99,18 @@ router.post('/', [upload.none(), isValidCourse, isEditorOrAbove], async (req, re
 router.get('/all', [isEditorOrAbove], async(req, res) => {
     try {
         let courses = await Course.find().populate('teacher');
-        return res.status(200).json(courses);
+        let response = {
+            success: true,
+            msg: "All Courses",
+            payload: courses
+        }
+        return res.status(200).json(response);
     } catch (err) {
         let response = {
-            error: {
-                title: "Server error",
-                desc: "An unexpected error occured.",
-                msg: err
-            }
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while getting all courses",
+            error: err
         }
         return res.status(500).json(response);
     }

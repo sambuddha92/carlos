@@ -9,39 +9,29 @@ module.exports = (req, res, next) => {
 
     if (!name.first || name.first.length < 1 || name.first === " ") {
         let response = {
-            error: {
-                title: "First name is missing",
-                desc: "First name is mandatory to create a new user"
-            }
+            success: false,
+            msg: "First Name Missing",
+            details: "First name is mandatory to create a new user"
         }
-        return res
-            .status(400)
-            .json(response);
+        return res.status(400).json(response);
     }
 
     if (!email) {
         let response = {
-            error: {
-                title: "Email is missing",
-                desc: "Email is mandatory to create a new user"
-            }
+            success: false,
+            msg: "Email ID Missing",
+            details: "Email ID is mandatory to create a new user"
         }
-        return res
-            .status(400)
-            .json(response);
+        return res.status(400).json(response);
     }
 
     if (!re.test(email)) {
         let response = {
-            error: {
-                title: "Invalid email",
-                desc: "The email ID provided is not valid. A valid email id is mandatory to create a ne" +
-                        "w user."
-            }
+            success: false,
+            msg: "Invalid Email",
+            details: "A valid Email ID is mandatory to create a new user"
         }
-        return res
-            .status(400)
-            .json(response);
+        return res.status(400).json(response);
     }
 
     next();

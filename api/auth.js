@@ -14,20 +14,15 @@ router.get( '/', (req, res) => {
         if (req.isAuthenticated()) {
             
             let response = {
-                success: {
-                    title: "Authenticated",
-                    desc: "User has been authenticated successfully"
-                }
-            }
-            
+                success: true,
+                msg: "User Authenticated"
+            }        
             return res.status(200).json(response);
-        } else {
 
+        } else {
             let response = {
-                error: {
-                    title: "Unauthorized",
-                    desc: "User could not be authenticated"
-                }
+                success: false,
+                msg: "Unauthorized"
             }
             
             return res.status(401).json(response);
@@ -36,12 +31,11 @@ router.get( '/', (req, res) => {
     } catch (err) {
 
         let response = {
-            error: {
-                title: "Server error",
-                desc: "An unexpected error occured.",
-                msg: err
-            }
-          }
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while trying to authenticate user",
+            error: err
+        }
     
           return res.status(500).json(response);
     }
@@ -81,8 +75,9 @@ router.get( '/logout', (req, res) => {
         let response = {
             success: false,
             msg: "Server Error",
-            details: err
-          }
+            details: "An unexpected error occured while logging out user",
+            error: err
+        }
         return res.status(500).json(response);
     }
     
