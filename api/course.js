@@ -116,4 +116,29 @@ router.get('/all', [isEditorOrAbove], async(req, res) => {
     }
 })
 
+//@route    GET api/course/id
+//@desc     Get A Course
+//@access   private
+
+router.get('/:id', [isEditorOrAbove], async(req, res) => {
+    const { id } = req.params;
+    try {
+        let course = await Course.findById(id).populate('teacher');
+        let response = {
+            success: true,
+            msg: "All Courses",
+            payload: course
+        }
+        return res.status(200).json(response);
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while getting all courses",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
 module.exports = router;
