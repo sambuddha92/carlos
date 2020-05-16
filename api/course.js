@@ -141,4 +141,33 @@ router.get('/:id', [isEditorOrAbove], async(req, res) => {
     }
 })
 
+//@route    PUT api/course/id/description
+//@desc     Update A Course Description
+//@access   private
+
+router.put("/:id/description", [isEditorOrAbove], async (req, res) => {
+    const { id } = req.params;
+    try {
+        let { description } = req.body;
+        const updatedCourse = await Course.findByIdAndUpdate(id, {description}, {new: true}).populate('teacher');
+        let response = {
+            success: true,
+            msg: "Course Updated",
+            payload: updatedCourse
+        }
+        return res.status(200).json(response);
+
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while updating course description",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
+
+
 module.exports = router;
