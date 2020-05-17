@@ -18,7 +18,7 @@ let s3 = new AWS.S3({
 
 const s3Bucket = 'wingmait-course';
 
-const {isValidCourse} = require('../middleware/validation');
+const {isValidCourse, isValidCourseOverview} = require('../middleware/validation');
 const {isEditorOrAbove} = require('../middleware/auth');
 const Course = require('../models/course.js');
 const Teacher = require('../models/teacher.js');
@@ -162,6 +162,47 @@ router.put("/:id/description", [isEditorOrAbove], async (req, res) => {
             success: false,
             msg: "Server Error",
             details: "An unexpected error occured while updating course description",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
+//@route    PUT api/course/id/overview
+//@desc     Update A Course Overview
+//@access   private
+
+router.put("/:id/overview", [upload.none(), isValidCourseOverview, isEditorOrAbove], async (req, res) => {
+    const { id } = req.params;
+    try {
+        let { 
+            title,
+            subtitle,
+            mrp,
+            sp
+        } = req.body;
+
+        let updates = {
+            title,
+            subtitle,
+            fees: {
+                mrp: parseInt(mrp),
+                sp: parseInt(sp)
+            }
+        }
+        const updatedCourse = await Course.findByIdAndUpdate(id, updates, {new: true}).populate('teacher');
+        let response = {
+            success: true,
+            msg: "Course Updated",
+            payload: updatedCourse
+        }
+        return res.status(200).json(response);
+
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while updating course overview",
             error: err
         }
         return res.status(500).json(response);

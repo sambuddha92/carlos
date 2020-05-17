@@ -1,3 +1,5 @@
+const util = require('../util');
+
 module.exports = (req, res, next) => {
     let {
         teacherid,
@@ -13,11 +15,11 @@ module.exports = (req, res, next) => {
         return res.status(400).json(response);
     }
 
-    if ( !title ) {
+    if ( !util.isTitle(title) ) {
         let response = {
             success: false,
-            msg: "Course Title Missing",
-            details: "Course title is mandatory to create a new course"
+            msg: "Course Title Too Short",
+            details: "Course title with at least 3 characters is mandatory to create a new course"
         }
         return res.status(400).json(response);
     }

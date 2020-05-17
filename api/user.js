@@ -89,11 +89,12 @@ router.post('/', [ upload, isValidUser, isEditorOrAbove ], async(req, res) => {
         sgMail.send(msg);
 
         const updatedUsers = await User.find();
+        const filteredUpdatedUsers = updatedUsers.filter(user => (user.permission.level >= req.user.permission.level))
 
         let response = {
             success: true,
             msg: "User Created",
-            payload: updatedUsers
+            payload: filteredUpdatedUsers
         }
 
         return res.status(200).json(response);
@@ -141,7 +142,7 @@ router.get('/', (req, res) => {
 router.get('/all', [isEditorOrAbove], async(req, res) => {
     try {
         let users = await User.find();
-        let filteredUsers = users.filter(user => (user.permission.level >= req.user.permission.level))
+        let filteredUsers = users.filter(user => (user.permission.level >= req.user.permission.level));
         let response = {
             success: true,
             msg: "Got All Users",
