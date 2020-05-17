@@ -37,13 +37,16 @@ const Schema = new mongoose.Schema({
         type: String
     }],
     sections: [{
-        title: {
-            type: String,
-        },
-        lessons: [{
+        id: String,
+        title: String
+    }],
+    lessons: [{
+        section: String,
+        sectionid: String,
+        lesson: {
             type: mongoose.Schema.ObjectId,
             ref: 'Lesson'
-        }]
+        }
     }]
 })
 

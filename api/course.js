@@ -20,6 +20,7 @@ const s3Bucket = 'wingmait-course';
 
 const {isValidCourse, isValidCourseOverview} = require('../middleware/validation');
 const {isEditorOrAbove} = require('../middleware/auth');
+const util = require('../middleware/util');
 const Course = require('../models/course.js');
 const Teacher = require('../models/teacher.js');
 
@@ -123,7 +124,7 @@ router.get('/all', [isEditorOrAbove], async(req, res) => {
 router.get('/:id', [isEditorOrAbove], async(req, res) => {
     const { id } = req.params;
     try {
-        let course = await Course.findById(id).populate('teacher');
+        let course = await Course.findById(id).populate('teacher lessons');
         let response = {
             success: true,
             msg: "All Courses",
@@ -149,7 +150,7 @@ router.put("/:id/description", [isEditorOrAbove], async (req, res) => {
     const { id } = req.params;
     try {
         let { description } = req.body;
-        const updatedCourse = await Course.findByIdAndUpdate(id, {description}, {new: true}).populate('teacher');
+        const updatedCourse = await Course.findByIdAndUpdate(id, {description}, {new: true}).populate('teacher lessons');
         let response = {
             success: true,
             msg: "Course Updated",
@@ -190,7 +191,7 @@ router.put("/:id/overview", [upload.none(), isValidCourseOverview, isEditorOrAbo
                 sp: parseInt(sp)
             }
         }
-        const updatedCourse = await Course.findByIdAndUpdate(id, updates, {new: true}).populate('teacher');
+        const updatedCourse = await Course.findByIdAndUpdate(id, updates, {new: true}).populate('teacher lessons');
         let response = {
             success: true,
             msg: "Course Updated",
@@ -203,6 +204,50 @@ router.put("/:id/overview", [upload.none(), isValidCourseOverview, isEditorOrAbo
             success: false,
             msg: "Server Error",
             details: "An unexpected error occured while updating course overview",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
+//@route    PUT api/course/id/section/new
+//@desc     Add A New Course Section
+//@access   private
+
+router.put("/:id/section/new", [isEditorOrAbove], async (req, res) => {
+    const { id } = req.params;
+    try {
+        let { 
+            newSectionName
+        } = req.body;
+
+        if(!util.isTitle(newSectionName)) {
+            let response = {
+                success: false,
+                msg: "Invalid Section Name",
+                details: "Section name must have at least 3 characters"
+            }
+            return res.status(400).json(response);
+        }
+
+        let section = {
+            id: _.kebabCase(newSectionName),
+            title: newSectionName
+        }
+
+        let updatedCourse = await Course.findByIdAndUpdate(id, {$push: {sections: section}}, {new: true}).populate('teacher lessons');
+        let response = {
+            success: true,
+            msg: "Course Updated",
+            payload: updatedCourse
+        }
+        return res.status(200).json(response);
+
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while adding a new section",
             error: err
         }
         return res.status(500).json(response);

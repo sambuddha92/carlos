@@ -13,13 +13,26 @@ const Schema = new mongoose.Schema({
     },
     lessontype: {
         type: String,
-        enum: ['PDF', 'VIDEO', 'QUIZ'],
+        enum: ['DOC', 'VIDEO', 'QUIZ'],
         required: true
     },
-    resource: {
+    video: {
         bucket: String,
         key: String
-    }
+    },
+    doc: {
+        bucket: String,
+        key: String
+    },
+    quiz: [{
+        question: String,
+        answer: String,
+        options: [String]
+    }],
+    courses:[{
+        type: mongoose.Schema.ObjectId,
+        ref: 'Course'
+    }]
 })
 
 
