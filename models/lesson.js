@@ -37,4 +37,4 @@ const Schema = new mongoose.Schema({
 
 
 // Export the model
-module.exports = mongoose.model('Teacher', Schema);
+module.exports = mongoose.model('Lesson', Schema);

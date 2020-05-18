@@ -41,11 +41,16 @@ const Schema = new mongoose.Schema({
         title: String
     }],
     lessons: [{
-        section: String,
         sectionid: String,
+        access: {
+            type: String,
+            enum: ['Preview', 'Freeview', 'Premium'],
+            default: 'Premium'
+        },
         lesson: {
             type: mongoose.Schema.ObjectId,
-            ref: 'Lesson'
+            ref: 'Lesson',
+            required: true
         }
     }]
 })

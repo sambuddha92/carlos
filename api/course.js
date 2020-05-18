@@ -18,11 +18,13 @@ let s3 = new AWS.S3({
 
 const s3Bucket = 'wingmait-course';
 
-const {isValidCourse, isValidCourseOverview} = require('../middleware/validation');
+const {isValidCourse, isValidCourseOverview, isValidLesson} = require('../middleware/validation');
 const {isEditorOrAbove} = require('../middleware/auth');
 const util = require('../middleware/util');
+
 const Course = require('../models/course.js');
 const Teacher = require('../models/teacher.js');
+const Lesson = require('../models/lesson.js');
 
 //@route    POST api/course
 //@desc     Create Course
@@ -117,6 +119,148 @@ router.get('/all', [isEditorOrAbove], async(req, res) => {
     }
 })
 
+//@route    POST api/course/id/section
+//@desc     Add A New Course Section
+//@access   private
+
+router.post("/:id/section", [isEditorOrAbove], async (req, res) => {
+    const { id } = req.params;
+    try {
+        let { 
+            newSectionName
+        } = req.body;
+
+        if(!util.isTitle(newSectionName)) {
+            let response = {
+                success: false,
+                msg: "Invalid Section Name",
+                details: "Section name must have at least 3 characters"
+            }
+            return res.status(400).json(response);
+        }
+
+        let section = {
+            id: _.kebabCase(newSectionName),
+            title: newSectionName
+        }
+
+        let updatedCourse = await Course.findByIdAndUpdate(id, {$push: {sections: section}}, {new: true}).populate('teacher lessons');
+        let response = {
+            success: true,
+            msg: "Course Updated",
+            payload: updatedCourse
+        }
+        return res.status(200).json(response);
+
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while adding a new section",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
+//@route    POST api/course/id/sectionid/lesson
+//@desc     Add A New Lesson To A Course
+//@access   private
+
+router.post('/:id/:sectionid/lesson', [upload.single('resource'), isValidLesson, isEditorOrAbove], async (req, res) => {
+    const {
+        id,
+        sectionid 
+    } = req.params
+
+    try {
+
+        let {
+            title,
+            lessontype,
+            lessonaccess
+        } = req.body;
+
+        let file = req.file;
+        let filekey = v4() + "_" + file.originalname;
+
+         //Upload file to S3
+         let params = {
+            Bucket: s3Bucket,
+            Key: filekey,
+            Body: file.buffer,
+            ContentType: file.mimetype
+        };
+
+        s3.upload(params, function (err) {
+            if (err) {
+                let response = {
+                    success: false,
+                    msg: "Server Error",
+                    details: "Encountered an error while trying to upload the lesson to S3",
+                    error: err
+                }
+
+                return res.status(500).json(response);
+            }
+        });
+
+        let course = await Course.findById(id).populate('teacher');
+
+        let updates = {
+            teacher: mongoose.Types.ObjectId(course.teacher.id),
+            title,
+            lessontype,
+            video: {
+                bucket: '',
+                key: ''
+            },
+            doc: {
+                bucket: '',
+                key: ''
+            },
+            courses: [mongoose.Types.ObjectId(course.id)]
+        }
+
+        if (lessontype === "VIDEO") {
+            updates.video.bucket = s3Bucket;
+            updates.video.key = filekey
+        }
+
+        if (lessontype === "DOC") {
+            updates.doc.bucket = s3Bucket;
+            updates.doc.key = filekey
+        }
+
+        const lesson = new Lesson(updates);
+
+        await lesson.save();
+
+        const courseLesson = {
+            sectionid,
+            access: lessonaccess,
+            lesson: mongoose.Types.ObjectId(lesson._id)
+        }
+
+        let updatedCourse = await Course.findByIdAndUpdate(id, {$push: {lessons: courseLesson}}, {new: true}).populate('teacher lessons.lesson');
+        let response = {
+            success: true,
+            msg: "Course Updated",
+            payload: updatedCourse
+        }
+        return res.status(200).json(response);
+
+    } catch (err) {
+            let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while adding a new lesson",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
 //@route    GET api/course/id
 //@desc     Get A Course
 //@access   private
@@ -124,7 +268,7 @@ router.get('/all', [isEditorOrAbove], async(req, res) => {
 router.get('/:id', [isEditorOrAbove], async(req, res) => {
     const { id } = req.params;
     try {
-        let course = await Course.findById(id).populate('teacher lessons');
+        let course = await Course.findById(id).populate('teacher lessons.lesson');
         let response = {
             success: true,
             msg: "All Courses",
@@ -150,7 +294,7 @@ router.put("/:id/description", [isEditorOrAbove], async (req, res) => {
     const { id } = req.params;
     try {
         let { description } = req.body;
-        const updatedCourse = await Course.findByIdAndUpdate(id, {description}, {new: true}).populate('teacher lessons');
+        const updatedCourse = await Course.findByIdAndUpdate(id, {description}, {new: true}).populate('teacher lessons.lesson');
         let response = {
             success: true,
             msg: "Course Updated",
@@ -191,7 +335,7 @@ router.put("/:id/overview", [upload.none(), isValidCourseOverview, isEditorOrAbo
                 sp: parseInt(sp)
             }
         }
-        const updatedCourse = await Course.findByIdAndUpdate(id, updates, {new: true}).populate('teacher lessons');
+        const updatedCourse = await Course.findByIdAndUpdate(id, updates, {new: true}).populate('teacher lessons.lesson');
         let response = {
             success: true,
             msg: "Course Updated",
@@ -210,50 +354,61 @@ router.put("/:id/overview", [upload.none(), isValidCourseOverview, isEditorOrAbo
     }
 })
 
-//@route    PUT api/course/id/section/new
-//@desc     Add A New Course Section
+//@route    DELETE api/course/id/lessonid
+//@desc     Update A Course Overview
 //@access   private
 
-router.put("/:id/section/new", [isEditorOrAbove], async (req, res) => {
-    const { id } = req.params;
+router.delete('/:id/:lessonid', [isEditorOrAbove], async (req, res) => {
+    const {
+        id,
+        lessonid
+    } = req.params;
+
     try {
-        let { 
-            newSectionName
-        } = req.body;
+        const lesson = await Lesson.findById(lessonid);
+        let Bucket = "";
+        let Key = "";
+        
+        if (lesson.lessontype === "VIDEO") {
+            Bucket = lesson.video.bucket;
+            Key = lesson.video.key
+        }
 
-        if(!util.isTitle(newSectionName)) {
-            let response = {
-                success: false,
-                msg: "Invalid Section Name",
-                details: "Section name must have at least 3 characters"
+        if (lesson.lessontype === "DOC") {
+            Bucket = lesson.doc.bucket;
+            Key = lesson.doc.key
+        }
+
+        s3.deleteObject({ Bucket, Key }, function(err) {
+            if (err) {
+                let response = {
+                    success: false,
+                    msg: "Server Error",
+                    details: "Encountered an error while trying to delete lesson content from s3",
+                    error: err
+                }
+                return res.status(500).json(response);
             }
-            return res.status(400).json(response);
-        }
+        });
 
-        let section = {
-            id: _.kebabCase(newSectionName),
-            title: newSectionName
-        }
+        await Lesson.deleteOne({_id: lessonid});
 
-        let updatedCourse = await Course.findByIdAndUpdate(id, {$push: {sections: section}}, {new: true}).populate('teacher lessons');
+        let updatedCourse = await Course.findByIdAndUpdate(id, {$pull: {lessons: {lesson: lessonid}}}, {new: true}).populate('teacher lessons.lesson');
         let response = {
             success: true,
             msg: "Course Updated",
             payload: updatedCourse
         }
         return res.status(200).json(response);
-
     } catch (err) {
         let response = {
             success: false,
             msg: "Server Error",
-            details: "An unexpected error occured while adding a new section",
+            details: "An unexpected error occured while deleting the lesson",
             error: err
         }
         return res.status(500).json(response);
     }
 })
-
-
 
 module.exports = router;

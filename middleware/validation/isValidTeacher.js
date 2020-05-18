@@ -1,3 +1,5 @@
+const util = require('../util');
+
 module.exports = (req, res, next) => {
     let {
         firstname,
@@ -11,7 +13,7 @@ module.exports = (req, res, next) => {
     }
     var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     
-    if ( !name.first || name.first.length < 1 || name.first === " " ) {
+    if ( !util.isName(firstname) ) {
         let response = {
             success: false,
             msg: "First Name Missing",

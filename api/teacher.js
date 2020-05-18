@@ -300,7 +300,7 @@ router.put('/:id', [upload.single('avatar'), isValidTeacher], async (req, res) =
                         }
                         return res.status(500).json(response);
                     }
-                });   
+                });
             }
     
             updates.avatar = avatar;

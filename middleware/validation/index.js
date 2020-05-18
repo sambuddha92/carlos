@@ -6,11 +6,13 @@ const isValidLogInAttempt = require('./isValidLogInAttempt');
 const isValidTeacher = require('./isValidTeacher');
 const isValidCourse = require('./isValidCourse');
 const isValidCourseOverview = require('./isValidCourseOverview');
+const isValidLesson = require('./isValidLesson');
 
 module.exports = {
     isValidUser,
     isValidLogInAttempt,
     isValidTeacher,
     isValidCourse,
-    isValidCourseOverview
+    isValidCourseOverview,
+    isValidLesson
 }

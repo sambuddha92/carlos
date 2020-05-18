@@ -33,6 +33,7 @@ app.use( passport.session() );
 app.use( '/api/user', require('./api/user') );
 app.use( '/api/teacher', require('./api/teacher') );
 app.use( '/api/course', require('./api/course') );
+app.use( '/api/lesson', require('./api/lesson') );
 app.use( '/api/auth', require('./api/auth') );
 
 app.use( '/robots.txt', function (req, res, next) {
