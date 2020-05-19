@@ -31,11 +31,12 @@ const Lesson = require('../models/lesson.js');
 //@access   private
 
 router.post('/', [upload.none(), isValidCourse, isEditorOrAbove], async (req, res) => {
-    let {
-        teacherid,
-        title,
-    } = req.body;
     try {
+        let {
+            teacherid,
+            title,
+        } = req.body;
+
         //Check if teacher exists
         const teacher = await Teacher.findById(teacherid);
         if (!teacher) {
@@ -124,8 +125,9 @@ router.get('/all', [isEditorOrAbove], async(req, res) => {
 //@access   private
 
 router.post("/:id/section", [isEditorOrAbove], async (req, res) => {
-    const { id } = req.params;
     try {
+        const { id } = req.params;
+
         let { 
             newSectionName
         } = req.body;
@@ -144,7 +146,18 @@ router.post("/:id/section", [isEditorOrAbove], async (req, res) => {
             title: newSectionName
         }
 
-        let updatedCourse = await Course.findByIdAndUpdate(id, {$push: {sections: section}}, {new: true}).populate('teacher lessons');
+        let course = await Course.findById(id);
+
+        if (course.sections.filter(sec => sec.id === section.id).length > 0) {
+            let response = {
+                success: false,
+                msg: "Duplicate Section Name",
+                details: "Section names in a course must be unique"
+            }
+            return res.status(400).json(response);
+        }
+
+        let updatedCourse = await Course.findByIdAndUpdate(id, {$push: {sections: section}}, {new: true}).populate('teacher lessons.lesson');
         let response = {
             success: true,
             msg: "Course Updated",
@@ -163,17 +176,16 @@ router.post("/:id/section", [isEditorOrAbove], async (req, res) => {
     }
 })
 
-//@route    POST api/course/id/sectionid/lesson
+//@route    POST api/course/id/section/sectionid/lesson
 //@desc     Add A New Lesson To A Course
 //@access   private
 
-router.post('/:id/:sectionid/lesson', [upload.single('resource'), isValidLesson, isEditorOrAbove], async (req, res) => {
-    const {
-        id,
-        sectionid 
-    } = req.params
-
+router.post('/:id/section/:sectionid/lesson', [upload.single('resource'), isValidLesson, isEditorOrAbove], async (req, res) => {
     try {
+        const {
+            id,
+            sectionid 
+        } = req.params
 
         let {
             title,
@@ -266,8 +278,8 @@ router.post('/:id/:sectionid/lesson', [upload.single('resource'), isValidLesson,
 //@access   private
 
 router.get('/:id', [isEditorOrAbove], async(req, res) => {
-    const { id } = req.params;
     try {
+        const { id } = req.params;
         let course = await Course.findById(id).populate('teacher lessons.lesson');
         let response = {
             success: true,
@@ -291,8 +303,8 @@ router.get('/:id', [isEditorOrAbove], async(req, res) => {
 //@access   private
 
 router.put("/:id/description", [isEditorOrAbove], async (req, res) => {
-    const { id } = req.params;
     try {
+        const { id } = req.params;
         let { description } = req.body;
         const updatedCourse = await Course.findByIdAndUpdate(id, {description}, {new: true}).populate('teacher lessons.lesson');
         let response = {
@@ -318,8 +330,8 @@ router.put("/:id/description", [isEditorOrAbove], async (req, res) => {
 //@access   private
 
 router.put("/:id/overview", [upload.none(), isValidCourseOverview, isEditorOrAbove], async (req, res) => {
-    const { id } = req.params;
     try {
+        const { id } = req.params;
         let { 
             title,
             subtitle,
@@ -354,17 +366,147 @@ router.put("/:id/overview", [upload.none(), isValidCourseOverview, isEditorOrAbo
     }
 })
 
-//@route    DELETE api/course/id/lessonid
+//@route    PUT api/course/id/status/live
+//@desc     Update Course Status to Live
+//@access   private
+router.put('/:id/status/live', [isEditorOrAbove], async (req, res) => {
+    try {
+        const {id} = req.params;
+        let course = await Course.findById(id);
+        
+        if (!course.description) {
+            let response = {
+                success: false,
+                msg: "Course Description Missing",
+                details: "A course must have a description added to it before it can go live."
+            }
+            return res.status(400).json(response);
+        }
+        
+        if (!course.subtitle) {
+            let response = {
+                success: false,
+                msg: "Course Subtitle Missing",
+                details: "A course must have a subtitle added to it before it can go live."
+            }
+            return res.status(400).json(response);
+        }
+
+        if (!course.sections.length > 0) {
+            let response = {
+                success: false,
+                msg: "Course is empty.",
+                details: "A course must have at least one section with at least one lesson, before it can go live."
+            }
+            return res.status(400).json(response);
+        }
+
+        if (!course.lessons.length > 0) {
+            let response = {
+                success: false,
+                msg: "Course is empty.",
+                details: "A course must have at least one section with at least one lesson, before it can go live."
+            }
+            return res.status(400).json(response);
+        }
+
+        const updatedCourse = await Course.findByIdAndUpdate(id, {status: "LIVE"}, {new: true}).populate('teacher lessons.lesson');
+        let response = {
+            success: true,
+            msg: "Course Updated",
+            payload: updatedCourse
+        }
+        return res.status(200).json(response);
+
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while making course live",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
+//@route    PUT api/course/id/status/live
+//@desc     Update Course Status to Live
+//@access   private
+router.put('/:id/status/pause', [isEditorOrAbove], async (req, res) => {
+    try {
+        const {id} = req.params;
+        let course = await Course.findById(id);
+
+        const updatedCourse = await Course.findByIdAndUpdate(id, {status: "PAUSED"}, {new: true}).populate('teacher lessons.lesson');
+        let response = {
+            success: true,
+            msg: "Course Updated",
+            payload: updatedCourse
+        }
+        return res.status(200).json(response);
+
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while pausing course",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
+//@route    DELETE api/course/id/section/sectionid
+//@desc     Delete an empty section
+//@access   private
+
+router.delete('/:id/section/:sectionid', [isEditorOrAbove], async (req, res) => {
+    try {
+        const {
+            id,
+            sectionid
+        } = req.params;
+
+        let course = await Course.findById(id);
+        if (course.lessons.filter(lesson => lesson.sectionid === sectionid).length > 0) {
+            let response = {
+                success: false,
+                msg: "Cannot Delete non-empty Section. Delete all lessons first",
+                delete: "A section must have no lessons tagged to it for it to be deleted."
+            }
+            return res.status(400).json(response);
+        }
+
+        let updatedCourse = await Course.findByIdAndUpdate(id, {$pull: {sections: {id: sectionid}}}, {new: true}).populate('teacher lessons.lesson');
+        let response = {
+            success: true,
+            msg: "Course Updated",
+            payload: updatedCourse
+        }
+        return res.status(200).json(response);
+        
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while deleting section",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
+//@route    DELETE api/course/id/lesson/lessonid
 //@desc     Update A Course Overview
 //@access   private
 
-router.delete('/:id/:lessonid', [isEditorOrAbove], async (req, res) => {
-    const {
-        id,
-        lessonid
-    } = req.params;
-
+router.delete('/:id/lesson/:lessonid', [isEditorOrAbove], async (req, res) => {
     try {
+        const {
+            id,
+            lessonid
+        } = req.params;
+
         const lesson = await Lesson.findById(lessonid);
         let Bucket = "";
         let Key = "";
