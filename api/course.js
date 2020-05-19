@@ -96,30 +96,6 @@ router.post('/', [upload.none(), isValidCourse, isEditorOrAbove], async (req, re
     }
 })
 
-//@route    GET api/course/all
-//@desc     Get All Courses
-//@access   private
-
-router.get('/all', [isEditorOrAbove], async(req, res) => {
-    try {
-        let courses = await Course.find().populate('teacher');
-        let response = {
-            success: true,
-            msg: "All Courses",
-            payload: courses
-        }
-        return res.status(200).json(response);
-    } catch (err) {
-        let response = {
-            success: false,
-            msg: "Server Error",
-            details: "An unexpected error occured while getting all courses",
-            error: err
-        }
-        return res.status(500).json(response);
-    }
-})
-
 //@route    POST api/course/id/section
 //@desc     Add A New Course Section
 //@access   private
@@ -267,6 +243,177 @@ router.post('/:id/section/:sectionid/lesson', [upload.single('resource'), isVali
             success: false,
             msg: "Server Error",
             details: "An unexpected error occured while adding a new lesson",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
+//@route    GET api/course/all
+//@desc     Get All Courses
+//@access   private
+
+router.get('/all', [isEditorOrAbove], async(req, res) => {
+    try {
+        let courses = await Course.find().populate('teacher');
+        let response = {
+            success: true,
+            msg: "All Courses",
+            payload: courses
+        }
+        return res.status(200).json(response);
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while getting all courses",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
+//@route    GET api/course/preview/id
+//@desc     Get Course in Preview
+//@access   private
+
+router.get('/preview/:titleid', [isEditorOrAbove], async(req, res) => {
+    try {
+        const { titleid } = req.params;
+
+        let course = await Course.findOne({titleId: titleid}).populate('teacher lessons.lesson');
+        const lessonsforview = course.lessons.map(lesson => {
+            if (lesson.access === "Preview") {
+                return {
+                    access: lesson.access,
+                    sectionid: lesson.sectionid,
+                    title: lesson.lesson.title,
+                    lesson: lesson.lesson.id
+                }
+            } else {
+                return {
+                    access: lesson.access,
+                    sectionid: lesson.sectionid,
+                    title: lesson.lesson.title,
+                    lesson: "no-access"
+                }
+            }
+        })
+        let payload = {
+            title: course.title,
+            subtitle: course.subtitle,
+            description: course.description,
+            mrp: course.fees.mrp,
+            sp: course.fees.sp,
+            sections: course.sections,
+            lessons: lessonsforview
+        }
+        let response = {
+            success: true,
+            msg: "All Courses",
+            payload
+        }
+        return res.status(200).json(response);
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while getting all courses",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
+//@route    GET api/course/freeview/id
+//@desc     Get Course in Freeview
+//@access   private
+
+router.get('/freeview/:titleid', [isEditorOrAbove], async(req, res) => {
+    try {
+        const { titleid } = req.params;
+
+        let course = await Course.findOne({titleId: titleid}).populate('teacher lessons.lesson');
+        const lessonsforview = course.lessons.map(lesson => {
+            if (lesson.access === "Preview" || lesson.access === "Freeview" ) {
+                return {
+                    access: lesson.access,
+                    sectionid: lesson.sectionid,
+                    title: lesson.lesson.title,
+                    lesson: lesson.lesson.id
+                }
+            } else {
+                return {
+                    access: lesson.access,
+                    sectionid: lesson.sectionid,
+                    title: lesson.lesson.title,
+                    lesson: "no-access"
+                }
+            }
+        })
+        let payload = {
+            title: course.title,
+            subtitle: course.subtitle,
+            description: course.description,
+            mrp: course.fees.mrp,
+            sp: course.fees.sp,
+            sections: course.sections,
+            lessons: lessonsforview
+        }
+        let response = {
+            success: true,
+            msg: "All Courses",
+            payload
+        }
+        return res.status(200).json(response);
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while getting all courses",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
+//@route    GET api/course/premium/id
+//@desc     Get Course in Premium View
+//@access   private
+
+router.get('/premium/:titleid', [isEditorOrAbove], async(req, res) => {
+    try {
+        const { titleid } = req.params;
+
+        let course = await Course.findOne({titleId: titleid}).populate('teacher lessons.lesson');
+        const lessonsforview = course.lessons.map(lesson => {
+            return {
+                access: lesson.access,
+                sectionid: lesson.sectionid,
+                title: lesson.lesson.title,
+                lesson: lesson.lesson.id
+            }
+        })
+        let payload = {
+            title: course.title,
+            subtitle: course.subtitle,
+            description: course.description,
+            mrp: course.fees.mrp,
+            sp: course.fees.sp,
+            sections: course.sections,
+            lessons: lessonsforview
+        }
+        let response = {
+            success: true,
+            msg: "All Courses",
+            payload
+        }
+        return res.status(200).json(response);
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while getting all courses",
             error: err
         }
         return res.status(500).json(response);
