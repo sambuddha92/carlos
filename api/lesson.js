@@ -55,7 +55,6 @@ router.get('/:id/url', [isEditorOrAbove], async (req,res) => {
         return res.status(200).json(response);
 
     } catch (err) {
-        console.log(err);
         let response = {
             success: false,
             msg: "Server Error",

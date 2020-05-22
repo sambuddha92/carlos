@@ -288,6 +288,7 @@ router.get('/preview/:titleid', [isEditorOrAbove], async(req, res) => {
                     access: lesson.access,
                     sectionid: lesson.sectionid,
                     title: lesson.lesson.title,
+                    lessontype: lesson.lesson.lessontype,
                     lesson: lesson.lesson.id
                 }
             } else {
@@ -295,6 +296,7 @@ router.get('/preview/:titleid', [isEditorOrAbove], async(req, res) => {
                     access: lesson.access,
                     sectionid: lesson.sectionid,
                     title: lesson.lesson.title,
+                    lessontype: lesson.lesson.lessontype,
                     lesson: "no-access"
                 }
             }
@@ -340,6 +342,7 @@ router.get('/freeview/:titleid', [isEditorOrAbove], async(req, res) => {
                     access: lesson.access,
                     sectionid: lesson.sectionid,
                     title: lesson.lesson.title,
+                    lessontype: lesson.lesson.lessontype,
                     lesson: lesson.lesson.id
                 }
             } else {
@@ -347,6 +350,7 @@ router.get('/freeview/:titleid', [isEditorOrAbove], async(req, res) => {
                     access: lesson.access,
                     sectionid: lesson.sectionid,
                     title: lesson.lesson.title,
+                    lessontype: lesson.lesson.lessontype,
                     lesson: "no-access"
                 }
             }
@@ -391,6 +395,7 @@ router.get('/premium/:titleid', [isEditorOrAbove], async(req, res) => {
                 access: lesson.access,
                 sectionid: lesson.sectionid,
                 title: lesson.lesson.title,
+                lessontype: lesson.lesson.lessontype,
                 lesson: lesson.lesson.id
             }
         })
