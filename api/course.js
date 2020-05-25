@@ -683,4 +683,47 @@ router.delete('/:id/lesson/:lessonid', [isEditorOrAbove], async (req, res) => {
     }
 })
 
+//@route    DELETE api/course/id
+//@desc     Delete an empty course
+//@access   private
+
+router.delete('/:id', [isEditorOrAbove], async (req, res) => {
+    try {
+        const { id } = req.params;
+        const course = await Course.findById(id);
+        
+        if (course.sections.length > 0 || course.lessons.length > 0) {
+            let response = {
+                success: false,
+                msg: "Course is non-empty",
+                details: "A course must have no sections or lessons for it to be deleted."
+            }
+            return res.status(500).json(response);
+        }
+
+        await Teacher.findByIdAndUpdate(course.teacher, {$pull: {courses: id}}, {new: true})
+        await Course.findByIdAndDelete(id);
+
+        const updatedCourses = await Course.find().populate('teacher');
+
+        let response = {
+            success: true,
+            msg: "Course Deleted",
+            payload: updatedCourses
+        }
+
+        return res.status(200).json(response);
+
+
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while deleting the course",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
 module.exports = router;
