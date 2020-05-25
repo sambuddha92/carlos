@@ -65,6 +65,44 @@ router.get('/:id/url', [isEditorOrAbove], async (req,res) => {
     }
 })
 
+//@route    Get api/lesson/puturl/filename
+//@desc     Get a lesson url
+//@access   private
+
+router.get('/puturl/:filename', [isEditorOrAbove], async (req,res) => {
+    const {filename} = req.params
+    try {
+        let filekey = v4() + "_" + filename;
+
+        let params = {
+            Bucket: s3Bucket,
+            Key: filekey,
+            Expires: 3600
+        }
+    
+        let url = s3.getSignedUrl('putObject', params);
+        let response = {
+            success: true,
+            msg: "Lesson URL",
+            payload: {
+                url,
+                key: filekey,
+                bucket: s3Bucket
+            }
+        }
+        return res.status(200).json(response);
+
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while getting lesson url",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
 
 
 module.exports = router;

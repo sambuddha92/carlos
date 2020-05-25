@@ -4,7 +4,9 @@ module.exports = (req, res, next) => {
     let {
         title,
         lessontype,
-        lessonaccess
+        lessonaccess,
+        bucket,
+        key
     } = req.body;
 
     if (!util.isTitle(title)) {
@@ -33,13 +35,12 @@ module.exports = (req, res, next) => {
         return res.status(400).json(response);
     }
 
-    if (!req.file) {
+    if (!bucket || !key) {
         let response = {
             success: false,
             msg: "File is required"
         }
         return res.status(400).json(response);
     }
-
     next();
 }

@@ -156,7 +156,7 @@ router.post("/:id/section", [isEditorOrAbove], async (req, res) => {
 //@desc     Add A New Lesson To A Course
 //@access   private
 
-router.post('/:id/section/:sectionid/lesson', [upload.single('resource'), isValidLesson, isEditorOrAbove], async (req, res) => {
+router.post('/:id/section/:sectionid/lesson', [isValidLesson, isEditorOrAbove], async (req, res) => {
     try {
         const {
             id,
@@ -166,32 +166,10 @@ router.post('/:id/section/:sectionid/lesson', [upload.single('resource'), isVali
         let {
             title,
             lessontype,
-            lessonaccess
+            lessonaccess,
+            bucket,
+            key
         } = req.body;
-
-        let file = req.file;
-        let filekey = v4() + "_" + file.originalname;
-
-         //Upload file to S3
-         let params = {
-            Bucket: s3Bucket,
-            Key: filekey,
-            Body: file.buffer,
-            ContentType: file.mimetype
-        };
-
-        s3.upload(params, function (err) {
-            if (err) {
-                let response = {
-                    success: false,
-                    msg: "Server Error",
-                    details: "Encountered an error while trying to upload the lesson to S3",
-                    error: err
-                }
-
-                return res.status(500).json(response);
-            }
-        });
 
         let course = await Course.findById(id).populate('teacher');
 
@@ -211,13 +189,13 @@ router.post('/:id/section/:sectionid/lesson', [upload.single('resource'), isVali
         }
 
         if (lessontype === "VIDEO") {
-            updates.video.bucket = s3Bucket;
-            updates.video.key = filekey
+            updates.video.bucket = bucket;
+            updates.video.key = key;
         }
 
         if (lessontype === "DOC") {
-            updates.doc.bucket = s3Bucket;
-            updates.doc.key = filekey
+            updates.doc.bucket = bucket;
+            updates.doc.key = key;
         }
 
         const lesson = new Lesson(updates);
