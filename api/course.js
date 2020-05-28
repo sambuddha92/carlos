@@ -469,9 +469,22 @@ router.put("/:id/overview", [upload.none(), isValidCourseOverview, isEditorOrAbo
             sp
         } = req.body;
 
+        const titleId = _.kebabCase(title);
+
+        let courseCheck = await Course.findOne({titleId});
+        if (courseCheck && courseCheck.id !== id) {
+            let response = {
+                success: false,
+                msg: "Duplicate Course Title",
+                details: "The selected course title is already in use"
+            }
+            return res.status(400).json(response);
+        }
+
         let updates = {
             title,
             subtitle,
+            titleId,
             fees: {
                 mrp: parseInt(mrp),
                 sp: parseInt(sp)
