@@ -509,6 +509,151 @@ router.put("/:id/overview", [upload.none(), isValidCourseOverview, isEditorOrAbo
     }
 })
 
+//@route    PUT api/course/id/asset/icon
+//@desc     Update A Course Icon
+//@access   private
+router.put('/:id/asset/icon', [upload.single('icon'), isEditorOrAbove], async (req, res) => {
+    try {
+        const {id} = req.params;
+        let course = await Course.findById(id);
+        const file = req.file;
+        const key = v4() + '_' + file.originalname;
+        const bucket = "wingmait-public";
+        const url = `https://wingmait-public.s3.ap-south-1.amazonaws.com/${key}`;
+        let params = {
+            Bucket: bucket,
+            Key: key,
+            Body: file.buffer,
+            ContentType: file.mimetype
+        };
+        let updates = {
+            icon: {
+                key,
+                bucket,
+                url
+            }
+        }
+        s3.upload(params, function (err) {
+            if (err) {
+                let response = {
+                    success: false,
+                    msg: "Server Error",
+                    details: "Encountered an error while trying to upload the new icon to S3",
+                    error: err
+                }
+
+                return res.status(500).json(response);
+            }
+        });
+
+        if (course.icon && course.icon.bucket && course.icon.key) {
+            s3.deleteObject({  Bucket: course.icon.bucket, Key: course.icon.key }, function(err) {
+                if (err) {
+                    let response = {
+                        success: false,
+                        msg: "Server Error",
+                        details: "Encountered an error while trying to delete the previous icon from S3",
+                        error: err
+                    }
+                    return res.status(500).json(response);
+                }
+            });
+        }
+
+        const updatedCourse = await Course.findByIdAndUpdate(id, updates, {new: true}).populate('teacher lessons.lesson');
+        
+        let response = {
+            success: true,
+            msg: "Course Icon Updated",
+            payload: updatedCourse
+        }
+        return res.status(200).json(response);
+    } catch (err) {
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while updating course icon",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
+//@route    PUT api/course/id/asset/preview
+//@desc     Update A Course Preview
+//@access   private
+router.put('/:id/asset/preview', [upload.single('preview'), isEditorOrAbove], async (req, res) => {
+    try {
+        const {id} = req.params;
+        let course = await Course.findById(id);
+        const file = req.file;
+        const key = v4() + '_' + file.originalname;
+        const bucket = "wingmait-public";
+        const url = `https://wingmait-public.s3.ap-south-1.amazonaws.com/${key}`;
+
+        let params = {
+            Bucket: bucket,
+            Key: key,
+            Body: file.buffer,
+            ContentType: file.mimetype
+        };
+
+        let updates = {
+            preview_image: {
+                key,
+                bucket,
+                url
+            }
+        }
+
+        s3.upload(params, function (err) {
+            if (err) {
+                let response = {
+                    success: false,
+                    msg: "Server Error",
+                    details: "Encountered an error while trying to upload the new preview image to S3",
+                    error: err
+                }
+
+                return res.status(500).json(response);
+            }
+        });
+
+        if (course.preview_image && course.preview_image.bucket && course.preview_image.key) {
+            s3.deleteObject({  Bucket: course.preview_image.bucket, Key: course.preview_image.key }, function(err) {
+                if (err) {
+                    let response = {
+                        success: false,
+                        msg: "Server Error",
+                        details: "Encountered an error while trying to delete the previous preview image from S3",
+                        error: err
+                    }
+                    return res.status(500).json(response);
+                }
+            });
+        }
+
+        const updatedCourse = await Course.findByIdAndUpdate(id, updates, {new: true}).populate('teacher lessons.lesson');
+        
+        let response = {
+            success: true,
+            msg: "Course Preview Image Updated",
+            payload: updatedCourse
+        }
+        
+        return res.status(200).json(response);
+    } catch (err) {
+        console.log(err);
+        let response = {
+            success: false,
+            msg: "Server Error",
+            details: "An unexpected error occured while updating course icon",
+            error: err
+        }
+        return res.status(500).json(response);
+    }
+})
+
 //@route    PUT api/course/id/status/live
 //@desc     Update Course Status to Live
 //@access   private

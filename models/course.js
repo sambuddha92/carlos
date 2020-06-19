@@ -24,6 +24,22 @@ const Schema = new mongoose.Schema({
         required: true
     },
     subtitle: String,
+    icon: {
+        key: String,
+        bucket: String,
+        url: {
+          type: String,
+          default: 'https://wingmait-public.s3.ap-south-1.amazonaws.com/course-icon-default.png'
+        }
+    },
+    preview_image: {
+        key: String,
+        bucket: String,
+        url: {
+          type: String,
+          default: 'https://wingmait-public.s3.ap-south-1.amazonaws.com/no-image-course-preview.png'
+        }
+    },
     description: String,
     fees: {
         mrp: {
